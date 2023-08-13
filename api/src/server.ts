@@ -1,14 +1,17 @@
 import express from 'express'
 import bodyParser from 'body-parser'
-import pool from './infra/postgres-db'
+import {CreatePool} from './infra/postgres-db'
 import {Logger} from './logger'
+
+import healthCheck from "./delivery/routes/health-check";
 
 class Server {
     private app
 
-    constructor(private readonly logger: Logger) {
+    constructor(private readonly logger: Logger, private readonly pool: CreatePool) {
         this.app = express()
         this.config()
+        this.routes()
         this.dbConnect()
     }
 
@@ -23,8 +26,12 @@ class Server {
         this.app.use(bodyParser.json({limit: '1mb'})) // 100kb default
     }
 
+    private routes(): void {
+        this.app.use('/', healthCheck)
+    }
+
     private dbConnect() {
-        pool.connect((err /* , client, done */) => {
+        this.pool().connect((err /* , client, done */) => {
             if (err) {
                 throw new Error(err.message)
             }
