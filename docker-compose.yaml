@@ -1,0 +1,43 @@
+version: "3.7"
+services:
+  api:
+    container_name: api
+    build:
+      context: ./api
+      dockerfile: ./Dockerfile
+    environment:
+      - DB_URL=postgresql+asyncpg://user1:pass1@postgres/api-db
+      - AUTH_SECRET=very-secret
+    depends_on:
+      - postgres
+      - rabbit-dev
+    volumes:
+      - ./:/workspace
+    ports:
+      - 4000:4000
+
+  postgres:
+    container_name: postgres
+    image: postgres:10.4
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgresdata:/var/lib/postgresql/data
+      - ./src/migrations/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql
+    restart: always
+    environment:
+      POSTGRES_USER: user1
+      POSTGRES_PASSWORD: pass1
+      POSTGRES_DB: api-db
+
+  rabbit-dev:
+    image: rabbitmq:3-alpine
+    hostname: rabbit-dev
+    environment:
+      - RABBITMQ_DEFAULT_VHOST=api
+      - RABBITMQ_ERLANG_COOKIE=i-m-very-secret
+    ports:
+      - 8881:15672 # Admin UI of rabbitmq-1
+      - 5672:5672 # rabbitmq-1 for local development
+    healthcheck:
+      test: rabbitmq-diagnostics check_port_connectivity
