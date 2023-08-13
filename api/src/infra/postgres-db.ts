@@ -1,5 +1,6 @@
 import {Pool} from 'pg'
-import {PG_ENV} from "../app";
+
+import {PG_ENV} from "../env-vars";
 
 
 export type CreatePool = () => Pool

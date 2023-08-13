@@ -4,7 +4,7 @@ const router = Router();
 
 const helloWorld: (req: Request, res: Response) => Promise<void> =
     async (_, res) => {
-        await res.send( 'Hello World!' )
+        await res.send( 'Hello World, mate!' )
     }
 
 

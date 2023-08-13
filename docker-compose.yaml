@@ -6,13 +6,16 @@ services:
       context: ./api
       dockerfile: ./Dockerfile
     environment:
-      - DB_URL=postgresql+asyncpg://user1:pass1@postgres/api-db
+      - API_PG_PWD=pass1
+      - DB_UR=postgresql+asyncpg://user1:pass1@postgres/api-db
       - AUTH_SECRET=very-secret
     depends_on:
       - postgres
       - rabbit-dev
     volumes:
-      - ./:/workspace
+      - ./api/dist/src:/workspace/dist/src
+      - ./api/src:/workspace/src
+      - workspace:/workspace
     ports:
       - 4000:4000
 
@@ -20,7 +23,7 @@ services:
     container_name: postgres
     image: postgres:10.4
     ports:
-      - "5432:5432"
+      - 5432:5432
     volumes:
       - ./postgresdata:/var/lib/postgresql/data
       - ./src/migrations/dbinit.sql:/docker-entrypoint-initdb.d/dbinit.sql
@@ -41,3 +44,6 @@ services:
       - 5672:5672 # rabbitmq-1 for local development
     healthcheck:
       test: rabbitmq-diagnostics check_port_connectivity
+
+volumes:
+  workspace:

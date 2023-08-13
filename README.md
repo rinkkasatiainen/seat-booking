@@ -5,6 +5,9 @@ This is an app for learning purposes.
 
 # Running on docker
 
+ - [ ] run `docker compose up`
+ - [x] Does also do **hot reload** on Docker - if you have a watch on `tsc` so that `./dist` is built constantly 
+
 # Running on Localhost
 
 To setup api to run on localhost:
