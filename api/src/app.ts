@@ -19,9 +19,5 @@ const consoleLogger: Logger = {
 }
 
 const starter = new server(consoleLogger, createPool(envVars)).start(serverPort)
-    .then((port: number) => consoleLogger.log(`Running on port ${port}`))
-    .catch((error: Error) => {
-        consoleLogger.error(error)
-    })
 
 export default starter
