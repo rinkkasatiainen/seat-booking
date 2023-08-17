@@ -36,7 +36,12 @@
         "default": "array-simple"
       }
     ],
-    "@typescript-eslint/ban-ts-comment": "warn",
+    "@typescript-eslint/ban-ts-comment": [
+      "warn",
+      {
+        "ts-ignore": "allow-with-description"
+      }
+    ],
     "@typescript-eslint/ban-types": [
       "error",
       {

@@ -1,14 +1,14 @@
+import * as http from 'http'
 import express, {Express} from 'express'
 import bodyParser from 'body-parser'
 import {CreatePool} from './infra/postgres-db'
 import {Logger} from './logger'
 
-import healthCheck from "./delivery/routes/health-check";
-import * as http from "http";
+import healthCheck from './delivery/routes/health-check'
 
 export interface ServerLike {
-    start: (port: number) => Promise<ServerLike>
-    close: () => Promise<void>
+    start: (port: number) => Promise<ServerLike>;
+    close: () => Promise<void>;
 }
 
 export class Server implements ServerLike {
@@ -22,7 +22,7 @@ export class Server implements ServerLike {
         this.routes()
     }
 
-    public start = async (port: number) => {
+    public start = async (port: number): Promise<Server> => {
         this.disconnectPool = await this.dbConnect(this.createPool)
         this.httpServer = this.app.listen(port, () => {
             this.logger.log(`Running on port ${port}`)
@@ -31,9 +31,9 @@ export class Server implements ServerLike {
         return this
     }
 
-    public close = async () => {
+    public close = async (): Promise<void> => {
         this.logger.log('closing')
-        await this.disconnectPool?.call(this).catch((err) => {
+        await this.disconnectPool?.call(this).catch((err: Error) => {
             this.logger.error(err)
         }).then(() => {
             this.logger.log('disconnected from X')
@@ -59,16 +59,15 @@ export class Server implements ServerLike {
         const pool = createPool()
         await pool.connect()
             .then(async (client) => {
-                client.query('SELECT NOW()').then(rows => {
-                    const result = rows.rows[0]
+                await client.query('SELECT NOW()').then(rows => {
+                    const result: { now: string } = rows.rows[0] as { now: string }
                     this.logger.log(`Starting DB connection @: ${result.now}`)
                 })
-                await client.release()
-            }).catch(err => {
-                if (err) {
-                    throw new Error(err.message)
-                }
-            });
+                client.release()
+            }).catch((err: Error) => {
+                this.logger.error(err)
+                throw err
+            })
         return () => pool.end()
     }
 }
