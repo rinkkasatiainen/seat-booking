@@ -16,14 +16,12 @@ const healtCheck: (req: Request, res: Response) => void =
 const healtCheckPost: (broadCast: Broadcast) => (req: Request, res: Response) => void =
     broadCast => (req, res) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        broadCast(JSON.stringify(req.body))
-        res.json({status: 'ok'})
+        const count = broadCast(JSON.stringify(req.body))
+        res.json({status: {websocket: {status: 'ok', connections: count }}})
     }
 
-const noop = (_: unknown) => {/* noop*/}
 
-
-const r = (broadCast: Broadcast | undefined = noop) => {
+const r = (broadCast: Broadcast ) => {
     const router = Router()
     router.get('/hello/world', helloWorld)
     router.post('/health/check', healtCheckPost(broadCast) )

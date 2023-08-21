@@ -14,13 +14,13 @@ export interface ServerLike {
 
 export type WebSocketServer = WebSocket.Server<typeof WebSocket.WebSocket, typeof IncomingMessage>
 
-export type Broadcast = (data: string) => void;
+export type Broadcast = (data: string) => number;
 
 export class Server implements ServerLike {
     private app: Express
     private httpServer?: http.Server
     private disconnectPool?: () => Promise<void>
-    private broadcast?: Broadcast
+    private broadcast: Broadcast
     // private wsPool = []
 
 
@@ -31,6 +31,16 @@ export class Server implements ServerLike {
     ) {
         this.app = express()
         this.config()
+
+        this.broadcast = data => {
+            this.wsServer.clients.forEach(function each(client) {
+                if (client.readyState === WebSocket.OPEN) {
+                    // @ts-ignore
+                    client.send(data)
+                }
+            })
+            return this.wsServer.clients.size
+        }
     }
 
     public start = async (port: number,): Promise<ServerLike> => {
@@ -43,14 +53,6 @@ export class Server implements ServerLike {
             webSocket.send('Hello from WebSocket!')
         })
 
-        this.broadcast = data => {
-            this.wsServer.clients.forEach(function each(client) {
-                if (client.readyState === WebSocket.OPEN) {
-                    // @ts-ignore
-                    client.send(data)
-                }
-            })
-        }
         this.httpServer.on('upgrade', (request, socket, head) => {
             this.wsServer.handleUpgrade(request, socket, head, wetSocket => {
                 this.wsServer.emit('connection', wetSocket, request)

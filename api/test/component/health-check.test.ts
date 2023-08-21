@@ -71,7 +71,7 @@ describe('Health Check of the system', () => {
             .expect(200)
             .expect((res => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                expect(res.body.status).to.eql('ok')
+                expect(res.body.status).to.eql({websocket: {status: 'ok', connections: 1}})
             }))
 
         for (let i = 0; i < 5; i++) {
