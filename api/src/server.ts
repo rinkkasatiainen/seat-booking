@@ -1,9 +1,10 @@
 import * as http from 'http'
+import {IncomingMessage} from 'http'
 import express, {Express} from 'express'
 import bodyParser from 'body-parser'
+import WebSocket from 'ws'
 import {CreatePool} from './infra/postgres-db'
 import {Logger} from './logger'
-
 import healthCheck from './delivery/routes/health-check'
 
 export interface ServerLike {
@@ -11,22 +12,51 @@ export interface ServerLike {
     close: () => Promise<void>;
 }
 
+export type WebSocketServer = WebSocket.Server<typeof WebSocket.WebSocket, typeof IncomingMessage>
+
+export type Broadcast = (data: string) => void;
+
 export class Server implements ServerLike {
     private app: Express
     private httpServer?: http.Server
     private disconnectPool?: () => Promise<void>
+    private broadcast?: Broadcast
+    // private wsPool = []
 
-    constructor(private readonly logger: Logger, private readonly createPool: CreatePool) {
+
+    constructor(
+        private readonly logger: Logger,
+        private readonly createPool: CreatePool,
+        private readonly wsServer: WebSocketServer
+    ) {
         this.app = express()
         this.config()
-        this.routes()
     }
 
-    public start = async (port: number): Promise<Server> => {
+    public start = async (port: number,): Promise<ServerLike> => {
         this.disconnectPool = await this.dbConnect(this.createPool)
         this.httpServer = this.app.listen(port, () => {
             this.logger.log(`Running on port ${port}`)
         })
+
+        this.wsServer.on('connection', (webSocket: WebSocket) => {
+            webSocket.send('Hello from WebSocket!')
+        })
+
+        this.broadcast = data => {
+            this.wsServer.clients.forEach(function each(client) {
+                if (client.readyState === WebSocket.OPEN) {
+                    // @ts-ignore
+                    client.send(data)
+                }
+            })
+        }
+        this.httpServer.on('upgrade', (request, socket, head) => {
+            this.wsServer.handleUpgrade(request, socket, head, wetSocket => {
+                this.wsServer.emit('connection', wetSocket, request)
+            })
+        })
+        this.routes()
 
         return this
     }
@@ -44,6 +74,17 @@ export class Server implements ServerLike {
             }
             this.logger.log('closed')
         })
+        return await new Promise((res, rej) => {
+            for (const client of this.wsServer.clients){
+                client.close()
+            }
+            this.wsServer.close((err?: Error) => {
+                if(err){
+                    rej(err)
+                }
+                res()
+            })
+        })
     }
 
     private config() {
@@ -52,7 +93,7 @@ export class Server implements ServerLike {
     }
 
     private routes(): void {
-        this.app.use('/', healthCheck)
+        this.app.use('/', healthCheck(this.broadcast))
     }
 
     private async dbConnect(createPool: CreatePool): Promise<() => Promise<void>> {
