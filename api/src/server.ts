@@ -13,8 +13,14 @@ export interface ServerLike {
 }
 
 export type WebSocketServer = WebSocket.Server<typeof WebSocket.WebSocket, typeof IncomingMessage>
-export type RabbitMQProducer = (msg: string) => void
-export type RabbitMQConsumer<T> = (cb: (msg: JSONValue) => T) => void
+export interface RabbitMQProducer {
+    send: (msg: string) => void;
+    close: () => void;
+}
+export interface RabbitMQConsumer<T> {
+    listen: (cb: (msg: JSONValue) => T) => void;
+    close: () => void;
+}
 export type Broadcast = (data: string) => number;
 
 export class Server implements ServerLike {
@@ -72,6 +78,7 @@ export class Server implements ServerLike {
         }).then(() => {
             this.logger.log('disconnected from X')
         })
+        this.producer.close()
         this.httpServer?.close((err) => {
             if (err) {
                 this.logger.error(err)

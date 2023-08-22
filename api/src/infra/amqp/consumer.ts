@@ -4,30 +4,39 @@ import {RabbitMQConsumer} from '../../server'
 import {createAmqpUrl} from './url'
 
 
-const createMQConsumer: (envVars: AMQP_ENV, queueName: string) => RabbitMQConsumer<JSONValue> =
-    (envVars: AMQP_ENV, queueName: string) => {
+const createMQConsumer: (envVars: AMQP_ENV, queueName: string) => Promise<RabbitMQConsumer<JSONValue>> =
+    async (envVars: AMQP_ENV, queueName: string) => {
         console.log('Connecting to RabbitMQ...')
         const amqpURl = createAmqpUrl(envVars)
-        return (callback: (msg: JSONValue) => JSONValue) => {
-            amqp.connect(amqpURl, (errConn, conn) => {
-                if (errConn) {
-                    throw errConn
-                }
-                conn.createChannel((errChan, chan) => {
-                    if (errChan) {
-                        throw errChan
+        return await new Promise(res => amqp.connect(amqpURl, (errConn, conn) => {
+            const r: RabbitMQConsumer<JSONValue> = {
+                listen: (callback: (msg: JSONValue) => JSONValue) => {
+                    if (errConn) {
+                        throw errConn
                     }
-                    console.log('Connected to RabbitMQ')
-                    chan.assertQueue(queueName, {durable: true})
-                    chan.consume(queueName, (msg: Message | null) => {
-                        if (msg) {
-                            const parsed: JSONValue = JSON.parse(msg.content.toString())
-                            callback(parsed)
+                    conn.createChannel((errChan, chan) => {
+                        if (errChan) {
+                            throw errChan
                         }
-                    }, {noAck: true})
-                })
-            })
-        }
+                        console.log('Connected to RabbitMQ')
+                        chan.assertQueue(queueName, {durable: true})
+                        chan.consume(queueName, (msg: Message | null) => {
+                            if (msg) {
+                                const parsed: JSONValue = JSON.parse(msg.content.toString())
+                                callback(parsed)
+                            }
+                        }, {noAck: true})
+                    })
+                },
+                close: () => {
+                    console.log('closing RabbitMQ connection')
+                    conn.close()
+                },
+            }
+            res(r)
+        })
+        )
+
 
     }
 

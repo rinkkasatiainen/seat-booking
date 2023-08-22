@@ -18,7 +18,7 @@ const healtCheckPost: (broadCast: Broadcast, producer: RabbitMQProducer) => (req
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         const message = req.body
         const count = broadCast(JSON.stringify(message))
-        producer(JSON.stringify(message))
+        producer.send(JSON.stringify(message))
         res.json({status: {websocket: {status: 'ok', connections: count }}})
     }
 

@@ -3,7 +3,7 @@ import {fail} from 'assert'
 import chai from 'chai'
 import request, {SuperTest, Test} from 'supertest'
 import WebSocket from 'ws'
-import Server, {ServerLike} from '../../src/server'
+import Server, {RabbitMQConsumer, ServerLike} from '../../src/server'
 import {Logger} from '../../src/logger'
 import createPool from '../../src/infra/postgres-db'
 import {AMQP_ENV, PG_ENV} from '../../src/env-vars'
@@ -32,14 +32,17 @@ const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
 describe('Health Check of the system', () => {
     let app: ServerLike
     let testSession: () => SuperTest<Test>
-    const consumer = createMQConsumer(amqpEnv, 'aki.tmp')
+    let consumer: RabbitMQConsumer<JSONValue>
 
     before(async () => {
-        app = await new Server(logger, createPool(pgEnv), wsServer, createMQProducer(amqpEnv, 'aki.tmp')).start(4001)
+        const producer = await createMQProducer(amqpEnv, 'aki.tmp')
+        app = await new Server(logger, createPool(pgEnv), wsServer, producer).start(4001)
         // @ts-ignore for testing purposes;
         testSession = () => request(app.app)
+        consumer = await createMQConsumer(amqpEnv, 'aki.tmp')
     })
     after(async () => {
+        consumer.close()
         await app.close()
     })
 
@@ -107,7 +110,7 @@ describe('Health Check of the system', () => {
 
     it('should be able to send a health/check and post that on AMQP.', async () => {
         const spy: JSONValue[] = []
-        consumer( (msg: JSONValue) => {
+        consumer.listen( (msg: JSONValue) => {
             spy.push(msg)
             return null
         })
