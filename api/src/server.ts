@@ -13,7 +13,8 @@ export interface ServerLike {
 }
 
 export type WebSocketServer = WebSocket.Server<typeof WebSocket.WebSocket, typeof IncomingMessage>
-
+export type RabbitMQProducer = (msg: string) => void
+export type RabbitMQConsumer<T> = (cb: (msg: JSONValue) => T) => void
 export type Broadcast = (data: string) => number;
 
 export class Server implements ServerLike {
@@ -27,7 +28,8 @@ export class Server implements ServerLike {
     constructor(
         private readonly logger: Logger,
         private readonly createPool: CreatePool,
-        private readonly wsServer: WebSocketServer
+        private readonly wsServer: WebSocketServer,
+        private readonly producer: RabbitMQProducer
     ) {
         this.app = express()
         this.config()
@@ -95,7 +97,7 @@ export class Server implements ServerLike {
     }
 
     private routes(): void {
-        this.app.use('/', healthCheck(this.broadcast))
+        this.app.use('/', healthCheck(this.broadcast, this.producer))
     }
 
     private async dbConnect(createPool: CreatePool): Promise<() => Promise<void>> {

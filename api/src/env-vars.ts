@@ -12,10 +12,20 @@ interface SERVER_ENV {
     SERVER_PORT: string;
 }
 
-export type FULLENV = PG_ENV & SERVER_ENV
+export interface AMQP_ENV {
+    AMQP_USERNAME: string;
+    AMQP_PASSWORD: string;
+    AMQP_HOST: string;
+    AMQP_VHOST: string;
+}
+
+export type FULLENV = PG_ENV & SERVER_ENV & AMQP_ENV
 type K = keyof FULLENV
 export type ENV = Partial<FULLENV>
-const envVarNames: K[] = ['PG_HOST', 'PG_PORT', 'PG_USERNAME', 'PG_PASSWORD', 'SERVER_HOST', 'SERVER_PORT', 'PG_PORT']
+const envVarNames: K[] = [
+    'PG_HOST', 'PG_PORT', 'PG_USERNAME', 'PG_PASSWORD',
+    'SERVER_HOST', 'SERVER_PORT',
+    'AMQP_HOST', 'AMQP_VHOST', 'AMQP_PASSWORD', 'AMQP_USERNAME']
 type MapEnv<K_ extends keyof FULLENV, T extends FULLENV[K_]> = (key: K_) => T | undefined
 
 export const getVars: () => ENV = () => {

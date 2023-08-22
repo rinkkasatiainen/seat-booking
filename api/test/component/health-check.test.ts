@@ -1,13 +1,15 @@
 import * as console from 'console'
-import { fail } from 'assert'
+import {fail} from 'assert'
 import chai from 'chai'
 import request, {SuperTest, Test} from 'supertest'
 import WebSocket from 'ws'
 import Server, {ServerLike} from '../../src/server'
 import {Logger} from '../../src/logger'
 import createPool from '../../src/infra/postgres-db'
-import {PG_ENV} from '../../src/env-vars'
-import {wsServer} from '../../src/ws-server'
+import {AMQP_ENV, PG_ENV} from '../../src/env-vars'
+import {wsServer} from '../../src/infra/websocket/ws-server'
+import createMQProducer from '../../src/infra/amqp/producer'
+import createMQConsumer from '../../src/infra/amqp/consumer'
 
 const {expect} = chai
 
@@ -20,12 +22,20 @@ const pgEnv: PG_ENV = {
     PG_HOST: 'postgres', PG_PASSWORD: 'pass1', PG_PORT: '5432', PG_USERNAME: 'user1',
 }
 
+const amqpEnv: AMQP_ENV = {
+    AMQP_HOST: 'localhost:5672', AMQP_PASSWORD: 'guest', AMQP_USERNAME: 'guest', AMQP_VHOST: 'api',
+
+}
+
+const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
+
 describe('Health Check of the system', () => {
     let app: ServerLike
     let testSession: () => SuperTest<Test>
+    const consumer = createMQConsumer(amqpEnv, 'aki.tmp')
 
     before(async () => {
-        app = await new Server(logger, createPool(pgEnv), wsServer).start(4001)
+        app = await new Server(logger, createPool(pgEnv), wsServer, createMQProducer(amqpEnv, 'aki.tmp')).start(4001)
         // @ts-ignore for testing purposes;
         testSession = () => request(app.app)
     })
@@ -55,7 +65,6 @@ describe('Health Check of the system', () => {
             console.log('opened connection')
         })
 
-        const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
 
         for (let i = 0; i < 5; i++) {
             if (connected) {
@@ -70,16 +79,17 @@ describe('Health Check of the system', () => {
             .send({data: 'Hello Websocket Test'})
             .expect(200)
             .expect((res => {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                expect(res.body.status).to.eql({websocket: {status: 'ok', connections: 1}})
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const {status} = res.body
+                expect(status).to.eql({websocket: {status: 'ok', connections: 1}})
             }))
 
         for (let i = 0; i < 5; i++) {
             // @ts-ignore
-            for(const x: string of spy){
+            for (const x: string of spy) {
                 try {
                     const y: unknown = JSON.parse(x)
-                    if(typeof y === 'object' && y !== null && 'data' in y && y.data === 'Hello Websocket Test') {
+                    if (typeof y === 'object' && y !== null && 'data' in y && y.data === 'Hello Websocket Test') {
                         console.log('found')
                         return
                     }
@@ -94,4 +104,37 @@ describe('Health Check of the system', () => {
         fail('Should not have found')
 
     }).timeout(5000)
+
+    it('should be able to send a health/check and post that on AMQP.', async () => {
+        const spy: JSONValue[] = []
+        consumer( (msg: JSONValue) => {
+            spy.push(msg)
+            return null
+        })
+
+        await testSession().post('/health/check')
+            .set('Accept', 'application/json')
+            .send({data: 'Hello RabbitMQ Test'})
+            .expect(200)
+            .expect((res => {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const {status} = res.body
+                expect(status).to.eql({websocket: {status: 'ok', connections: 1}})
+            }))
+
+        for (let i = 0; i < 5; i++) {
+            // @ts-ignore
+            const spyElement = spy[spy.length - 1]
+            // @ts-ignore
+            if (spyElement && spyElement.data === 'Hello RabbitMQ Test') {
+                return
+            }
+            await timer(400)
+            // @ts-ignore for testing
+            console.log(`sss, ${spy.join(', ')}`)
+        }
+        fail('Should not have found')
+
+    }).timeout(5000)
+
 })

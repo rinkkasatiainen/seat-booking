@@ -1,5 +1,5 @@
 import {Request, Response, Router} from 'express'
-import {Broadcast} from '../../server'
+import {Broadcast, RabbitMQProducer} from '../../server'
 
 
 const helloWorld: (req: Request, res: Response) => void =
@@ -13,18 +13,20 @@ const healtCheck: (req: Request, res: Response) => void =
         res.json({status: 'ok'})
     }
 
-const healtCheckPost: (broadCast: Broadcast) => (req: Request, res: Response) => void =
-    broadCast => (req, res) => {
+const healtCheckPost: (broadCast: Broadcast, producer: RabbitMQProducer) => (req: Request, res: Response) => void =
+    (broadCast, producer) => (req, res) => {
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const count = broadCast(JSON.stringify(req.body))
+        const message = req.body
+        const count = broadCast(JSON.stringify(message))
+        producer(JSON.stringify(message))
         res.json({status: {websocket: {status: 'ok', connections: count }}})
     }
 
 
-const r = (broadCast: Broadcast ) => {
+const r = (broadCast: Broadcast, producer: RabbitMQProducer) => {
     const router = Router()
     router.get('/hello/world', helloWorld)
-    router.post('/health/check', healtCheckPost(broadCast) )
+    router.post('/health/check', healtCheckPost(broadCast, producer) )
     router.get('/health/check', healtCheck)
     return router
 }

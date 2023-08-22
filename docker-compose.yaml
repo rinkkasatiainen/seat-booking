@@ -34,11 +34,15 @@ services:
       POSTGRES_DB: api-db
 
   rabbit-dev:
-    image: rabbitmq:3-alpine
+    image: rabbitmq:3-management
     hostname: rabbit-dev
     environment:
       - RABBITMQ_DEFAULT_VHOST=api
       - RABBITMQ_ERLANG_COOKIE=i-m-very-secret
+      - RABBITMQ_DEFAULT_USER user
+      - RABBITMQ_DEFAULT_PASS pass
+      - RABBITMQ_USER user
+      - RABBITMQ_PASS pass
     ports:
       - 8881:15672 # Admin UI of rabbitmq-1
       - 5672:5672 # rabbitmq-1 for local development
