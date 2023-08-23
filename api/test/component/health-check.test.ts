@@ -175,8 +175,11 @@ describe('Health Check of the system', () => {
 
 
 
-    it('part2', async () => {
-        const stream = (await wsStream()).ofType(knownEvents.HealthCheck).withPayload('ws').matching(Matches.toSubset({ws: {status: 'connected'}}))
+    it('I think this reads better', async () => {
+        const stream = (await wsStream())
+            .ofType(knownEvents.HealthCheck)
+            .withPayload('ws')
+            .matching(Matches.toSubset({ws: {status: 'connected'}}))
 
         await testSession().post('/health/check')
             .set('Accept', 'application/json')
@@ -187,7 +190,7 @@ describe('Health Check of the system', () => {
                 const {status} = res.body
                 expect(status).to.eql({websocket: {status: 'ok', connections: 1}})
             }))
-        await stream.waitUntilFound(5)
 
-    })
+        await stream.waitUntilFound(5)
+    }).timeout(10000)
 })
