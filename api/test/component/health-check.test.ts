@@ -11,6 +11,8 @@ import {wsServer} from '../../src/infra/websocket/ws-server'
 import createMQProducer from '../../src/infra/amqp/producer'
 import createMQConsumer from '../../src/infra/amqp/consumer'
 import {DomainEvent, isDomainEvent, isHealthCheck} from '../../src/domain/event'
+import {knownEvents} from '../../src/domain/known-events'
+import {Matches, wsStream} from '../utils/ws-stream'
 
 const {expect} = chai
 
@@ -116,12 +118,6 @@ describe('Health Check of the system', () => {
                 expect(status).to.eql({websocket: {status: 'ok', connections: 1}})
             }))
 
-        // expect(messages).to.containSubset({
-        //     messages: [],
-        //     streamId: uuid,
-        // });
-
-
         for (let i = 0; i < 5; i++) {
             // @ts-ignore
             for (const domainEvent: string of spy) {
@@ -177,4 +173,21 @@ describe('Health Check of the system', () => {
 
     }).timeout(5000)
 
+
+
+    it('part2', async () => {
+        const stream = (await wsStream()).ofType(knownEvents.HealthCheck).withPayload('ws').matching(Matches.toSubset({ws: {status: 'connected'}}))
+
+        await testSession().post('/health/check')
+            .set('Accept', 'application/json')
+            .send({data: 'Hello Websocket Test'})
+            .expect(200)
+            .expect((res => {
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                const {status} = res.body
+                expect(status).to.eql({websocket: {status: 'ok', connections: 1}})
+            }))
+        await stream.waitUntilFound(5)
+
+    })
 })

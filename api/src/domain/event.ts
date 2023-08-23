@@ -1,6 +1,6 @@
 import {knownEvents} from './known-events'
 
-type KnownEvents = keyof typeof knownEvents
+export type KnownEvents = keyof typeof knownEvents
 
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export type AnyDomainEvent = KnownEvents | string
