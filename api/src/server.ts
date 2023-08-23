@@ -3,9 +3,14 @@ import {IncomingMessage} from 'http'
 import express, {Express} from 'express'
 import bodyParser from 'body-parser'
 import WebSocket from 'ws'
+import {use} from 'chai'
+import chaiSubset from 'chai-subset'
 import {CreatePool} from './infra/postgres-db'
 import {Logger} from './logger'
 import healthCheck from './delivery/routes/health-check'
+import {connectedToWS, DomainEvent} from './domain/event'
+
+use(chaiSubset)
 
 export interface ServerLike {
     start: (port: number) => Promise<ServerLike>;
@@ -13,21 +18,25 @@ export interface ServerLike {
 }
 
 export type WebSocketServer = WebSocket.Server<typeof WebSocket.WebSocket, typeof IncomingMessage>
+
 export interface RabbitMQProducer {
-    send: (msg: string) => void;
+    send: (msg: DomainEvent) => void;
     close: () => void;
 }
+
 export interface RabbitMQConsumer<T> {
-    listen: (cb: (msg: JSONValue) => T) => void;
+    listen: (cb: (msg: DomainEvent) => T) => void;
     close: () => void;
 }
-export type Broadcast = (data: string) => number;
+
+export type Broadcast = (data: DomainEvent) => number;
 
 export class Server implements ServerLike {
     private app: Express
     private httpServer?: http.Server
     private disconnectPool?: () => Promise<void>
     private broadcast: Broadcast
+
     // private wsPool = []
 
 
@@ -43,8 +52,7 @@ export class Server implements ServerLike {
         this.broadcast = data => {
             this.wsServer.clients.forEach(function each(client) {
                 if (client.readyState === WebSocket.OPEN) {
-                    // @ts-ignore
-                    client.send(data)
+                    client.send(JSON.stringify(data))
                 }
             })
             return this.wsServer.clients.size
@@ -59,6 +67,7 @@ export class Server implements ServerLike {
 
         this.wsServer.on('connection', (webSocket: WebSocket) => {
             webSocket.send('Hello from WebSocket!')
+            webSocket.send(JSON.stringify(connectedToWS('Hello from WebSocket!')))
         })
 
         this.httpServer.on('upgrade', (request, socket, head) => {
@@ -86,11 +95,11 @@ export class Server implements ServerLike {
             this.logger.log('closed')
         })
         return await new Promise((res, rej) => {
-            for (const client of this.wsServer.clients){
+            for (const client of this.wsServer.clients) {
                 client.close()
             }
             this.wsServer.close((err?: Error) => {
-                if(err){
+                if (err) {
                     rej(err)
                 }
                 res()

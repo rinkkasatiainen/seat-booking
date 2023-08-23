@@ -21,7 +21,7 @@ const consoleLogger: Logger = {
 
 
 // @ts-ignore To be fixed by typing
-const producer = createMQProducer(envVars, 'amq.topic')
+const producer = await createMQProducer(envVars, 'amq.topic')
 
 const starter = new Server(consoleLogger, createPool(envVars), wsServer, producer).start(serverPort)
 

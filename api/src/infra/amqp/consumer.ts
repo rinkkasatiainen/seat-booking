@@ -1,6 +1,7 @@
 import amqp, {Message} from 'amqplib/callback_api'
 import {AMQP_ENV} from '../../env-vars'
 import {RabbitMQConsumer} from '../../server'
+import {isDomainEvent} from '../../domain/event'
 import {createAmqpUrl} from './url'
 
 
@@ -10,7 +11,7 @@ const createMQConsumer: (envVars: AMQP_ENV, queueName: string) => Promise<Rabbit
         const amqpURl = createAmqpUrl(envVars)
         return await new Promise(res => amqp.connect(amqpURl, (errConn, conn) => {
             const r: RabbitMQConsumer<JSONValue> = {
-                listen: (callback: (msg: JSONValue) => JSONValue) => {
+                listen: (callback) => {
                     if (errConn) {
                         throw errConn
                     }
@@ -22,8 +23,10 @@ const createMQConsumer: (envVars: AMQP_ENV, queueName: string) => Promise<Rabbit
                         chan.assertQueue(queueName, {durable: true})
                         chan.consume(queueName, (msg: Message | null) => {
                             if (msg) {
-                                const parsed: JSONValue = JSON.parse(msg.content.toString())
-                                callback(parsed)
+                                const parsed: unknown = JSON.parse(msg.content.toString())
+                                if (isDomainEvent(parsed)){
+                                    callback(parsed)
+                                }
                             }
                         }, {noAck: true})
                     })

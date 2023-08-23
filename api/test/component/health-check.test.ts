@@ -10,6 +10,7 @@ import {AMQP_ENV, PG_ENV} from '../../src/env-vars'
 import {wsServer} from '../../src/infra/websocket/ws-server'
 import createMQProducer from '../../src/infra/amqp/producer'
 import createMQConsumer from '../../src/infra/amqp/consumer'
+import {DomainEvent, isDomainEvent, isHealthCheck} from '../../src/domain/event'
 
 const {expect} = chai
 
@@ -28,6 +29,26 @@ const amqpEnv: AMQP_ENV = {
 }
 
 const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
+
+// interface X { [key: string]: unknown }
+type X = Record<string, unknown>
+
+
+const isSubset: (sup: X | undefined, sub: X) => boolean =
+    (superObj, subObj) => Object.keys(subObj).every(ele => {
+        if (superObj === undefined) {
+            return false
+        }
+        if (typeof subObj[ele] == 'object') {
+            if (typeof superObj[ele] == 'object') {
+                const subObject: Record<string, unknown> = subObj[ele] as Record<string, unknown>
+                const superObjElement = superObj[ele] as Record<string, unknown>
+                return isSubset(superObjElement, subObject)
+            }
+        }
+        return subObj[ele] === superObj[ele]
+    })
+
 
 describe('Health Check of the system', () => {
     let app: ServerLike
@@ -57,12 +78,20 @@ describe('Health Check of the system', () => {
 
     it('should be able to send a health/check and return response on websocket', async () => {
         const wsClient: WebSocket = new WebSocket('ws://localhost:4001')
-        const spy: string[] = []
+        const spy: DomainEvent[] = []
         let connected = false
         wsClient.on('open', (_: WebSocket) => {
             wsClient.on('message', (data: WebSocket.RawData) => {
                 // eslint-disable-next-line @typescript-eslint/no-base-to-string
-                spy.push(data.toString())
+                const str = data.toString()
+                try {
+                    const jsonData: unknown = JSON.parse(str)
+                    if (isDomainEvent(jsonData)) {
+                        spy.push(jsonData)
+                    }
+                } catch (e) {
+                    /* noop*/
+                }
                 connected = true
             })
             console.log('opened connection')
@@ -87,17 +116,20 @@ describe('Health Check of the system', () => {
                 expect(status).to.eql({websocket: {status: 'ok', connections: 1}})
             }))
 
+        // expect(messages).to.containSubset({
+        //     messages: [],
+        //     streamId: uuid,
+        // });
+
+
         for (let i = 0; i < 5; i++) {
             // @ts-ignore
-            for (const x: string of spy) {
-                try {
-                    const y: unknown = JSON.parse(x)
-                    if (typeof y === 'object' && y !== null && 'data' in y && y.data === 'Hello Websocket Test') {
+            for (const domainEvent: string of spy) {
+                if (isHealthCheck(domainEvent)) {
+                    if (isSubset({...domainEvent}, {message: 'Hello Websocket Test'})) {
                         console.log('found')
                         return
                     }
-                } catch (e) {
-                    //  noop
                 }
             }
             await timer(400)
@@ -109,8 +141,8 @@ describe('Health Check of the system', () => {
     }).timeout(5000)
 
     it('should be able to send a health/check and post that on AMQP.', async () => {
-        const spy: JSONValue[] = []
-        consumer.listen( (msg: JSONValue) => {
+        const spy: DomainEvent[] = []
+        consumer.listen(msg => {
             spy.push(msg)
             return null
         })
@@ -127,11 +159,16 @@ describe('Health Check of the system', () => {
 
         for (let i = 0; i < 5; i++) {
             // @ts-ignore
-            const spyElement = spy[spy.length - 1]
+            const domainEvent = spy[spy.length - 1]
             // @ts-ignore
-            if (spyElement && spyElement.data === 'Hello RabbitMQ Test') {
-                return
+            if (isHealthCheck(domainEvent)) {
+                if (isSubset({...domainEvent}, {message: 'Hello RabbitMQ Test'})) {
+                    console.log('found')
+                    return
+                }
+                console.log('almost')
             }
+
             await timer(400)
             // @ts-ignore for testing
             console.log(`sss, ${spy.join(', ')}`)
