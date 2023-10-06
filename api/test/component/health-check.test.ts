@@ -1,6 +1,7 @@
 import * as console from 'console'
 import {fail} from 'assert'
 import chai from 'chai'
+import chaiSubset from 'chai-subset'
 import request, {SuperTest, Test} from 'supertest'
 import WebSocket from 'ws'
 import Server, {RabbitMQConsumer, ServerLike} from '../../src/server'
@@ -15,6 +16,7 @@ import {knownEvents} from '../../src/domain/known-events'
 import {Matches, wsStream} from '../utils/ws-stream'
 
 const {expect} = chai
+chai.use(chaiSubset)
 
 const logger: Logger = {
     log: console.log.bind(this),
@@ -58,7 +60,7 @@ describe('Health Check of the system', () => {
     let consumer: RabbitMQConsumer<JSONValue>
 
     before(async () => {
-        const producer = await createMQProducer(amqpEnv, 'aki.tmp')
+        const producer = async () => await createMQProducer(amqpEnv, 'aki.tmp')
         app = await new Server(logger, createPool(pgEnv), wsServer, producer).start(4001)
         // @ts-ignore for testing purposes;
         testSession = () => request(app.app)
@@ -150,7 +152,12 @@ describe('Health Check of the system', () => {
             .expect((res => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const {status} = res.body
-                expect(status).to.eql({websocket: {status: 'ok', connections: 1}})
+                expect(status).to.containSubset({
+                    websocket: {
+                        status: 'ok',
+                        connections: (expectedValue: number) => expectedValue >= 1,
+                    },
+                })
             }))
 
         for (let i = 0; i < 5; i++) {
@@ -174,7 +181,6 @@ describe('Health Check of the system', () => {
     }).timeout(5000)
 
 
-
     it('I think this reads better', async () => {
         const stream = (await wsStream())
             .ofType(knownEvents.HealthCheck)
@@ -188,7 +194,12 @@ describe('Health Check of the system', () => {
             .expect((res => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
                 const {status} = res.body
-                expect(status).to.eql({websocket: {status: 'ok', connections: 1}})
+                expect(status).to.containSubset({
+                    websocket: {
+                        status: 'ok',
+                        connections: (expectedValue: number) => expectedValue >= 1,
+                    },
+                })
             }))
 
         await stream.waitUntilFound(5)

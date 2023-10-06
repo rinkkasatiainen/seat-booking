@@ -36,6 +36,7 @@ export class Server implements ServerLike {
     private httpServer?: http.Server
     private disconnectPool?: () => Promise<void>
     private broadcast: Broadcast
+    private producer?: RabbitMQProducer
 
     // private wsPool = []
 
@@ -44,7 +45,7 @@ export class Server implements ServerLike {
         private readonly logger: Logger,
         private readonly createPool: CreatePool,
         private readonly wsServer: WebSocketServer,
-        private readonly producer: RabbitMQProducer
+        private readonly producerProvider: () => Promise<RabbitMQProducer>
     ) {
         this.app = express()
         this.config()
@@ -65,6 +66,7 @@ export class Server implements ServerLike {
             this.logger.log(`Running on port ${port}`)
         })
 
+        this.producer = await this.producerProvider()
         this.wsServer.on('connection', (webSocket: WebSocket) => {
             webSocket.send('Hello from WebSocket!')
             webSocket.send(JSON.stringify(connectedToWS('Hello from WebSocket!')))
@@ -75,7 +77,7 @@ export class Server implements ServerLike {
                 this.wsServer.emit('connection', wetSocket, request)
             })
         })
-        this.routes()
+        this.app.use('/', healthCheck(this.broadcast, this.producer))
 
         return this
     }
@@ -87,7 +89,7 @@ export class Server implements ServerLike {
         }).then(() => {
             this.logger.log('disconnected from X')
         })
-        this.producer.close()
+        this.producer?.close()
         this.httpServer?.close((err) => {
             if (err) {
                 this.logger.error(err)
@@ -110,10 +112,6 @@ export class Server implements ServerLike {
     private config() {
         this.app.use(bodyParser.urlencoded({extended: true}))
         this.app.use(bodyParser.json({limit: '1mb'})) // 100kb default
-    }
-
-    private routes(): void {
-        this.app.use('/', healthCheck(this.broadcast, this.producer))
     }
 
     private async dbConnect(createPool: CreatePool): Promise<() => Promise<void>> {

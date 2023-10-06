@@ -31,7 +31,7 @@ const createMQProducer: (envVars: AMQP_ENV, queueName: string) => Promise<Rabbit
 
                     const producer: RabbitMQProducer = {
                         send: (msg: DomainEvent) => {
-                            console.log('Produce message to RabbitMQ...')
+                            console.log(`Produce message to RabbitMQ... ${JSON.stringify(msg)}`)
                             ch.sendToQueue(queueName, Buffer.from(JSON.stringify(msg)))
                         },
                         close: () => connection.close(),
