@@ -7,6 +7,7 @@ This is an app for learning purposes.
 
  - [ ] run `docker compose up`
  - [x] Does also do **hot reload** on Docker - if you have a watch on `tsc` so that `./dist` is built constantly 
+ - [x] to build newest version of the NodeJS apps, run `docker compose build` to build new images
 
 # Running on Localhost
 

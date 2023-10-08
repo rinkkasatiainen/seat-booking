@@ -14,23 +14,51 @@ const healtCheck: (req: Request, res: Response) => void =
         res.json({status: 'ok'})
     }
 
-const healtCheckPost: (broadCast: Broadcast, producer: RabbitMQProducer) => (req: Request, res: Response) => void =
+interface RequestWithValidData {
+    body: { data: unknown };
+}
+
+type F = (req: RequestWithValidData, res: Response) => void
+
+const isObject = (x: unknown): x is {[key: string]: unknown} => typeof x === 'object' && x !== null
+
+function isValidF(x: unknown): x is RequestWithValidData {
+    if (isObject(x)) {
+        const {body} = x
+        return typeof body === 'object' && body !== null && 'data' in body
+    }
+    return false
+
+}
+
+const withValidRequest: (f: F) => (req: Request, res: Response) => void =
+    callbackFn => (req, res) => {
+        if (isValidF(req)) {
+            return callbackFn(req, res)
+        }
+        res.status(400).json('INVALID REQUEST')
+        return
+    }
+
+const healtCheckPost:
+    (broadCast: Broadcast, producer: RabbitMQProducer) => (req: RequestWithValidData, res: Response) => void =
     (broadCast, producer) => (req, res) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const message: string = req.body.data
+        const message: unknown = req.body.data
         if (typeof message === 'string') {
             const healthCheckEvent: HealthCheck = healthCheck(message)
             const count = broadCast(healthCheckEvent)
             producer.send(healthCheckEvent)
             res.json({status: {websocket: {status: 'ok', connections: count}}})
+            return
         }
+        res.json({status: 'failed'})
     }
 
 
 const r = (broadCast: Broadcast, producer: RabbitMQProducer) => {
     const router = Router()
     router.get('/hello/world', helloWorld)
-    router.post('/health/check', healtCheckPost(broadCast, producer))
+    router.post('/health/check', withValidRequest(healtCheckPost(broadCast, producer)))
     router.get('/health/check', healtCheck)
     return router
 }

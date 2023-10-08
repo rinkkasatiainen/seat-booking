@@ -3,14 +3,10 @@ import {IncomingMessage} from 'http'
 import express, {Express} from 'express'
 import bodyParser from 'body-parser'
 import WebSocket from 'ws'
-import {use} from 'chai'
-import chaiSubset from 'chai-subset'
 import {CreatePool} from './infra/postgres-db'
 import {Logger} from './logger'
 import healthCheck from './delivery/routes/health-check'
 import {connectedToWS, DomainEvent} from './domain/event'
-
-use(chaiSubset)
 
 export interface ServerLike {
     start: (port: number) => Promise<ServerLike>;
