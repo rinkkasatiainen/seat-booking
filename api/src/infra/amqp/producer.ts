@@ -1,15 +1,15 @@
-import amqp, {Connection} from 'amqplib/callback_api'
+import amqp, {Connection, Channel} from 'amqplib/callback_api'
 import {credentials} from 'amqplib'
 import {AMQP_ENV} from '../../env-vars'
 import {RabbitMQProducer} from '../../server'
 import {DomainEvent} from '../../domain/event'
 import {createAmqpUrl} from './url'
 
-const createMQProducer: (envVars: AMQP_ENV, queueName: string) => Promise<RabbitMQProducer> =
-    async (envvars, queueName) => {
+const createMQProducer: (envVars: AMQP_ENV, exchangeName: string) => Promise<RabbitMQProducer> =
+    async (envvars, exchangeName) => {
         console.log(' to RabbitMQ...')
         const url = createAmqpUrl(envvars)
-        let ch: any
+        let ch: Channel
         const opt = { credentials: credentials.plain(envvars.AMQP_USERNAME, envvars.AMQP_PASSWORD) }
         const p: RabbitMQProducer = await new Promise(
             res => {
@@ -31,8 +31,9 @@ const createMQProducer: (envVars: AMQP_ENV, queueName: string) => Promise<Rabbit
 
                     const producer: RabbitMQProducer = {
                         send: (msg: DomainEvent) => {
-                            console.log(`Produce message to RabbitMQ... ${JSON.stringify(msg)}`)
-                            ch.sendToQueue(queueName, Buffer.from(JSON.stringify(msg)))
+                            console.log(`Produce message to RabbitMQ... ${JSON.stringify(msg)}, ${exchangeName}`)
+                            ch.publish(exchangeName, 'msg', Buffer.from(JSON.stringify(msg)))
+                            // ch.sendToQueue(exchangeName, Buffer.from(JSON.stringify(msg)))
                         },
                         close: () => connection.close(),
                     }

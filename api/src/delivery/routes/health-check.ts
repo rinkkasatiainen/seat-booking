@@ -51,7 +51,7 @@ const healtCheckPost:
             res.json({status: {websocket: {status: 'ok', connections: count}}})
             return
         }
-        res.json({status: 'failed'})
+        res.status(400).json({status: 'error', reason: 'invalid data in request'})
     }
 
 

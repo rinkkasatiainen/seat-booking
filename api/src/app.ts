@@ -25,4 +25,5 @@ const producer = async () => await createMQProducer(envVars, 'amq.topic')
 
 const starter = new Server(consoleLogger, createPool(envVars), wsServer, producer).start(serverPort)
 
+
 export default starter

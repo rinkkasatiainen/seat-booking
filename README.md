@@ -6,8 +6,15 @@ This is an app for learning purposes.
 # Running on docker
 
  - [ ] run `docker compose up`
- - [x] Does also do **hot reload** on Docker - if you have a watch on `tsc` so that `./dist` is built constantly 
- - [x] to build newest version of the NodeJS apps, run `docker compose build` to build new images
+ - [ ] does build the image in 'production environment' - does not hot reload
+
+## Running with hot reaload
+
+to run with hot reload, use the dev version of the docker file `docker compose -f docker-compose-dev.yaml up --detach`
+
+you might need to rebuild the dev image - `docker compose -f docker-compose-dev.yaml build --no-cache`
+- [ ] run `docker compose -f docker-compose-dev.yaml up -d` to run locally.
+- [ ] to do **hot reload** - have a `yarn build:w` running for constant `tsc` reload -> docker uses the `/dist` folder for code
 
 # Running on Localhost
 

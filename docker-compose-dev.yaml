@@ -1,0 +1,27 @@
+version: "3.7"
+services:
+  api:
+    extends:
+      file: docker-compose.yaml
+      service: api
+    build:
+      context: ./api
+      dockerfile: ./Dockerfile
+      target: DEV
+    environment:
+      - API_PG_PWD=pass1
+      - DB_UR=postgresql+asyncpg://user1:pass1@postgres/api-db
+      - AUTH_SECRET=very-secret
+
+  postgres:
+    extends:
+      file: docker-compose.yaml
+      service: postgres
+
+  rabbit-dev:
+    extends:
+      file: docker-compose.yaml
+      service: rabbit-dev
+
+volumes:
+  workspace:

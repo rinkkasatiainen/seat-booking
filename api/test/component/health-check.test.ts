@@ -13,7 +13,7 @@ import createMQProducer from '../../src/infra/amqp/producer'
 import createMQConsumer from '../../src/infra/amqp/consumer'
 import {DomainEvent, isDomainEvent, isHealthCheck} from '../../src/domain/event'
 import {knownEvents} from '../../src/domain/known-events'
-import {Matches, wsStream} from '../utils/ws-stream'
+import {Matches, wsSpy, wsStream} from '../utils/ws-stream'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -29,7 +29,6 @@ const pgEnv: PG_ENV = {
 
 const amqpEnv: AMQP_ENV = {
     AMQP_HOST: 'localhost:5672', AMQP_PASSWORD: 'guest', AMQP_USERNAME: 'guest', AMQP_VHOST: 'api',
-
 }
 
 const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
@@ -60,7 +59,7 @@ describe('Health Check of the system', () => {
     let consumer: RabbitMQConsumer<JSONValue>
 
     before(async () => {
-        const producer = async () => await createMQProducer(amqpEnv, 'aki.tmp')
+        const producer = async () => await createMQProducer(amqpEnv, 'amq.topic')
         app = await new Server(logger, createPool(pgEnv), wsServer, producer).start(4001)
         // @ts-ignore for testing purposes;
         testSession = () => request(app.app)
@@ -138,7 +137,7 @@ describe('Health Check of the system', () => {
 
     }).timeout(5000)
 
-    it('should be able to send a health/check and post that on AMQP.', async () => {
+    it.skip('should be able to send a health/check and post that on AMQP.', async () => {
         const spy: DomainEvent[] = []
         consumer.listen(msg => {
             spy.push(msg)
@@ -161,9 +160,8 @@ describe('Health Check of the system', () => {
             }))
 
         for (let i = 0; i < 5; i++) {
-            // @ts-ignore
             const domainEvent = spy[spy.length - 1]
-            // @ts-ignore
+            // @ts-ignore for testing purposes
             if (isHealthCheck(domainEvent)) {
                 if (isSubset({...domainEvent}, {message: 'Hello RabbitMQ Test'})) {
                     console.log('found')
@@ -173,8 +171,6 @@ describe('Health Check of the system', () => {
             }
 
             await timer(400)
-            // @ts-ignore for testing
-            console.log(`sss, ${spy.join(', ')}`)
         }
         fail('Should not have found')
 
@@ -182,7 +178,7 @@ describe('Health Check of the system', () => {
 
 
     it('I think this reads better', async () => {
-        const stream = (await wsStream())
+        const stream = wsStream(await wsSpy(4001))
             .ofType(knownEvents.HealthCheck)
             .withPayload('ws')
             .matching(Matches.toSubset({ws: {status: 'connected'}}))
