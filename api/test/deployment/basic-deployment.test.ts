@@ -8,11 +8,6 @@ import {Matches, WsSpy, wsSpy, wsStream} from '../utils/ws-stream'
 const {expect} = chai
 chai.use(chaiSubset)
 
-// const logger: Logger = {
-//     log: console.log.bind(this),
-//     error: console.error.bind(this),
-// }
-
 describe('deployment', () => {
     const rq = request('http://localhost:4000')
     let spy: WsSpy

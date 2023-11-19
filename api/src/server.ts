@@ -3,10 +3,11 @@ import {IncomingMessage} from 'http'
 import express, {Express} from 'express'
 import bodyParser from 'body-parser'
 import WebSocket from 'ws'
-import {CreatePool} from './infra/postgres-db'
+import {ActsAsPool, DisconnectFromPool} from './infra/postgres-db'
 import {Logger} from './logger'
 import healthCheck from './delivery/routes/health-check'
 import {connectedToWS, DomainEvent} from './domain/event'
+import {ActsAsWebSocketServer} from './infra/websocket/ws-server'
 
 export interface ServerLike {
     start: (port: number) => Promise<ServerLike>;
@@ -28,22 +29,20 @@ export interface RabbitMQConsumer<T> {
 export type Broadcast = (data: DomainEvent) => number;
 
 export class Server implements ServerLike {
-    private app: Express
+    private app: RouteApp
     private httpServer?: http.Server
-    private disconnectPool?: () => Promise<void>
+    private disconnectPool?: DisconnectFromPool
     private broadcast: Broadcast
     private producer?: RabbitMQProducer
 
-    // private wsPool = []
-
-
     constructor(
         private readonly logger: Logger,
-        private readonly createPool: CreatePool,
-        private readonly wsServer: WebSocketServer,
-        private readonly producerProvider: () => Promise<RabbitMQProducer>
+        private readonly createPool: ActsAsPool,
+        private readonly wsServer: ActsAsWebSocketServer,
+        private readonly producerProvider: () => Promise<RabbitMQProducer>,
+        providesExpress: () => RouteApp
     ) {
-        this.app = express()
+        this.app = providesExpress()
         this.config()
 
         this.broadcast = data => {
@@ -63,7 +62,7 @@ export class Server implements ServerLike {
         })
 
         this.producer = await this.producerProvider()
-        this.wsServer.on('connection', (webSocket: WebSocket) => {
+        this.wsServer.on('connection', webSocket => {
             webSocket.send('Hello from WebSocket!')
             webSocket.send(JSON.stringify(connectedToWS('Hello from WebSocket!')))
         })
@@ -79,7 +78,6 @@ export class Server implements ServerLike {
     }
 
     public close = async (): Promise<void> => {
-        this.logger.log('closing')
         await this.disconnectPool?.call(this).catch((err: Error) => {
             this.logger.error(err)
         }).then(() => {
@@ -110,20 +108,52 @@ export class Server implements ServerLike {
         this.app.use(bodyParser.json({limit: '1mb'})) // 100kb default
     }
 
-    private async dbConnect(createPool: CreatePool): Promise<() => Promise<void>> {
-        const pool = createPool()
+    private async dbConnect(pool: ActsAsPool): Promise<DisconnectFromPool> {
         await pool.connect()
             .then(async (client) => {
                 await client.query('SELECT NOW()').then(rows => {
-                    const result: { now: string } = rows.rows[0] as { now: string }
-                    this.logger.log(`Starting DB connection @: ${result.now}`)
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+                    const _rows: Array<{now: string}> = rows.rows as Array<{now: string}>
+                    const result: { now: string } | undefined = _rows[0]
+                    if (result){
+                        this.logger.log(`Starting DB connection @: ${result.now}`)
+                    } else {
+                        this.logger.error( new Error('Could not connect to DB'))
+                    }
                 })
                 client.release()
             }).catch((err: Error) => {
                 this.logger.error(err)
                 throw err
             })
-        return () => pool.end()
+        return pool.disconnect.bind(pool)
+    }
+}
+
+export type RouteApp = Pick<Express, 'use'|'listen'>
+export type HttpServerAlias = Pick<http.Server, 'on'|'close'>
+
+export class ExpressApp {
+
+    public static of(): RouteApp {
+        return express()
+    }
+
+    public static createNull(): RouteApp{
+        return {
+            // @ts-ignore
+            use: () => ExpressApp.createNull(),
+            // @ts-ignore
+            listen: () => {
+                const fakeServer: HttpServerAlias = {
+                    // @ts-ignore
+                    close: () => fakeServer,
+                    // @ts-ignore
+                    on: () => fakeServer,
+                }
+                return fakeServer
+            },
+        }
     }
 }
 

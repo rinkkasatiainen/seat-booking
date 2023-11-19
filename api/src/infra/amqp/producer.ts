@@ -5,6 +5,11 @@ import {RabbitMQProducer} from '../../server'
 import {DomainEvent} from '../../domain/event'
 import {createAmqpUrl} from './url'
 
+// eslint-disable-next-line @typescript-eslint/no-empty-function
+function noop(){
+}
+
+
 const createMQProducer: (envVars: AMQP_ENV, exchangeName: string) => Promise<RabbitMQProducer> =
     async (envvars, exchangeName) => {
         console.log(' to RabbitMQ...')
@@ -44,5 +49,16 @@ const createMQProducer: (envVars: AMQP_ENV, exchangeName: string) => Promise<Rab
 
         return p
     }
+
+export class AmqpProducer {
+
+    public static createNull(): RabbitMQProducer {
+        return {
+            close: noop,
+            send: noop,
+        }
+    }
+}
+
 
 export default createMQProducer
