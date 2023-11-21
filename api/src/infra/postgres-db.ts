@@ -18,6 +18,21 @@ export interface ActsAsPool {
     disconnect: DisconnectFromPool;
 }
 
+function hasQ<T extends string>(key: T, data: FakeData): data is Fakeable<T> {
+    return Object.keys(data).includes(key)
+}
+function isDefined<T>(value: T | undefined ): asserts value is T {
+    if (value === undefined) {
+        // return false
+        throw new Error( 'Expected value not to be undefined' )
+    }
+}
+
+function assertValue<T>(x: T | undefined): T {
+    isDefined(x)
+    return x
+}
+
 export class PgPool {
 
     private constructor(private readonly pool: Pool) {
@@ -42,24 +57,42 @@ export class PgPool {
         return new PgPool(pool)
     }
 
-    public static createNull(): ActsAsPool {
+    public static createNull(dataRows: FakeData = {}): ActsAsPool {
         return {
             disconnect(): Promise<void> {
                 return Promise.resolve(undefined)
             },
             connect(): CanConnectToPool {
-                const res: QueryResult = {
+                const empty: QueryResult = {
                     command: 'none', fields: [], oid: 0, rowCount: 0, rows: [],
                 }
-                return Promise.resolve({
-                    query: () => Promise.resolve(res),
-                    release: noop,
+                const resultOf: (query: string, data: unknown[]) => QueryResult = (query, rows) => ({
+                    command: query, fields: [], oid: 0, rowCount: 0, rows,
+
                 })
+                return Promise.resolve({
+                    query: (q: string) => {
+                        if (hasQ(q, dataRows)) {
+                            return Promise.resolve(resultOf(q, assertValue(dataRows[q])))
+                        }
+                        return Promise.resolve(empty)
+                    },
+                    release: noop,
+                }) as Promise<ConnectedPoolClient>
             },
 
         }
     }
 }
+type FakeData = Record<string, unknown[]>
+type Fakeable<T extends string> = Record<T, unknown[]>
+
+const fff: FakeData = { test: ['foobar']}
+if( hasQ('test', fff) ){
+    const y: Fakeable<'test'> = fff
+    console.log(y)
+}
+console.log(fff)
 
 const createPool: (x: Partial<PG_ENV>) => ActsAsPool = pgEnv => PgPool.of.call(this, pgEnv)
 
