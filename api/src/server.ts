@@ -6,7 +6,7 @@ import WebSocket from 'ws'
 import {ActsAsPool, DisconnectFromPool} from './infra/postgres-db'
 import {Logger} from './logger'
 import healthCheck from './delivery/routes/health-check'
-import {connectedToWS, DomainEvent} from './domain/event'
+import {DomainEvent} from './domain/event'
 import {ActsAsWebSocketServer} from './infra/websocket/ws-server'
 
 export interface ServerLike {
@@ -45,33 +45,19 @@ export class Server implements ServerLike {
         this.app = providesExpress()
         this.config()
 
-        this.broadcast = data => {
-            this.wsServer.clients.forEach(function each(client) {
-                if (client.readyState === WebSocket.OPEN) {
-                    client.send(JSON.stringify(data))
-                }
-            })
-            return this.wsServer.clients.size
-        }
+        this.broadcast = data => this.wsServer.broadcast(data)
     }
 
     public start = async (port: number,): Promise<ServerLike> => {
-        this.disconnectPool = await this.dbConnect(this.createPool)
         this.httpServer = this.app.listen(port, () => {
             this.logger.log(`Running on port ${port}`)
         })
-
-        this.producer = await this.producerProvider()
-        this.wsServer.on('connection', webSocket => {
-            webSocket.send('Hello from WebSocket!')
-            webSocket.send(JSON.stringify(connectedToWS('Hello from WebSocket!')))
-        })
-
         this.httpServer.on('upgrade', (request, socket, head) => {
-            this.wsServer.handleUpgrade(request, socket, head, wetSocket => {
-                this.wsServer.emit('connection', wetSocket, request)
-            })
+            this.wsServer.handleUpgrade(request, socket, head)
         })
+
+        this.disconnectPool = await this.dbConnect(this.createPool)
+        this.producer = await this.producerProvider()
         this.app.use('/', healthCheck(this.broadcast, this.producer))
 
         return this
@@ -91,9 +77,6 @@ export class Server implements ServerLike {
             this.logger.log('closed')
         })
         return await new Promise((res, rej) => {
-            for (const client of this.wsServer.clients) {
-                client.close()
-            }
             this.wsServer.close((err?: Error) => {
                 if (err) {
                     rej(err)

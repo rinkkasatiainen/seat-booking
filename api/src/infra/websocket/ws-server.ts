@@ -3,37 +3,43 @@ import internal from 'stream'
 import * as console from 'console'
 import ws from 'ws'
 import WebSocket from 'ws'
+import {connectedToWS, DomainEvent} from '../../domain/event'
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
-function noop(){
+function noop() {
 }
 
 type WsInstanceType = InstanceType<typeof ws.WebSocket>
 type WsIncomingMessage = InstanceType<typeof IncomingMessage>
 
 export interface ActsAsWebSocketServer {
-    clients: Set<WsInstanceType>;
-    on: (event: 'connection', cb: (webSocket: ws.WebSocket) => void) => this;
-    handleUpgrade:
-        (request: WsIncomingMessage,
-         socket: internal.Duplex,
-         head: Buffer,
-         cb: (client: WsInstanceType, rq: WsIncomingMessage) => void
-        ) => void;
-    emit: (event: 'connection', webSocket: ws.WebSocket, rq: WsIncomingMessage) => boolean;
+    broadcast: (data: DomainEvent) => number;
+    handleUpgrade: (request: WsIncomingMessage,
+                    socket: internal.Duplex,
+                    head: Buffer) => void;
     close: (cb?: (err?: Error) => void) => void;
 }
 
-export class WsServer implements ActsAsWebSocketServer{
+export class WsServer implements ActsAsWebSocketServer {
     public readonly clients: Set<WsInstanceType>
 
     constructor(private readonly wsServer: ws.Server) {
         this.clients = wsServer.clients
     }
 
-
+    public broadcast(data: DomainEvent) {
+        this.wsServer.clients.forEach(function each(client) {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(data))
+            }
+        })
+        return this.wsServer.clients.size
+    }
 
     public close(cb: ((err?: Error) => void) | undefined): void {
+        for (const client of this.wsServer.clients) {
+            client.close()
+        }
         return this.wsServer.close(cb)
     }
 
@@ -44,14 +50,10 @@ export class WsServer implements ActsAsWebSocketServer{
     public handleUpgrade(
         request: WsIncomingMessage,
         socket: internal.Duplex,
-        head: Buffer,
-        cb: (client: WsInstanceType, rq: WsIncomingMessage) => void): void {
-        return this.wsServer.handleUpgrade(request, socket, head, cb)
-    }
-
-    public on(event: 'connection', cb: (webSocket: WebSocket.WebSocket) => void): this {
-        this.wsServer.on(event, cb)
-        return this
+        head: Buffer): void {
+        this.wsServer.handleUpgrade(request, socket, head, (webSocket) => {
+            this.wsServer.emit('connection', webSocket, request)
+        })
     }
 
     public static of(): ActsAsWebSocketServer {
@@ -61,18 +63,20 @@ export class WsServer implements ActsAsWebSocketServer{
                 // eslint-disable-next-line no-console
                 console.log('did receive incoming message from WS.')
             })
+            socket.send(JSON.stringify(connectedToWS('Hello from WebSocket!')))
         })
+
         return new WsServer(_wsServer)
     }
 
     public static createNull(): ActsAsWebSocketServer {
         const fake: ActsAsWebSocketServer = {
-            clients: new Set<WsInstanceType>(),
+            broadcast(_data: DomainEvent): number {
+                return 0
+            },
             handleUpgrade: noop,
-            emit: () => false,
-            on: (_) => fake,
             close: (cb) => {
-                if (cb){
+                if (cb) {
                     cb()
                 }
             },

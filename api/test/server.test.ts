@@ -9,7 +9,7 @@ import {AmqpProducer} from '../src/infra/amqp/producer'
 const {expect} = chai
 chai.use(chaiSubset)
 
-describe('Health Check of the system', () => {
+describe('Server startup', () => {
     let server: Server |undefined
     let data: LogData
     let fakeWsServer: ActsAsWebSocketServer
