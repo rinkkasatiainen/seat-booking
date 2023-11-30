@@ -7,7 +7,7 @@ import {createAmqpUrl} from './url'
 
 const createMQConsumer: (envVars: AMQP_ENV, queueName: string) => Promise<RabbitMQConsumer<JSONValue>> =
     async (envVars: AMQP_ENV, queueName: string) => {
-        console.log('Connecting to RabbitMQ...')
+        // console.log('Connecting to RabbitMQ...')
         const amqpURl = createAmqpUrl(envVars)
         return await new Promise(res => amqp.connect(amqpURl, (errConn, conn) => {
             const r: RabbitMQConsumer<JSONValue> = {
@@ -19,7 +19,6 @@ const createMQConsumer: (envVars: AMQP_ENV, queueName: string) => Promise<Rabbit
                         if (errChan) {
                             throw errChan
                         }
-                        console.log('Connected to RabbitMQ')
                         chan.assertQueue(queueName, {durable: true})
                         chan.consume(queueName, (msg: Message | null) => {
                             if (msg) {
@@ -32,6 +31,7 @@ const createMQConsumer: (envVars: AMQP_ENV, queueName: string) => Promise<Rabbit
                     })
                 },
                 close: () => {
+                    // eslint-disable-next-line no-console
                     console.log('closing RabbitMQ connection')
                     conn.close()
                 },

@@ -1,5 +1,5 @@
 import {Request, Response, Router} from 'express'
-import {Broadcast, RabbitMQProducer} from '../../server'
+import {Broadcast, SendsMessages} from '../../server'
 import {healthCheck, HealthCheck} from '../../domain/event'
 
 
@@ -41,7 +41,7 @@ const withValidRequest: (f: F) => (req: Request, res: Response) => void =
     }
 
 const healtCheckPost:
-    (broadCast: Broadcast, producer: RabbitMQProducer) => (req: RequestWithValidData, res: Response) => void =
+    (broadCast: Broadcast, producer: SendsMessages) => (req: RequestWithValidData, res: Response) => void =
     (broadCast, producer) => (req, res) => {
         const message: unknown = req.body.data
         if (typeof message === 'string') {
@@ -55,7 +55,7 @@ const healtCheckPost:
     }
 
 
-const r = (broadCast: Broadcast, producer: RabbitMQProducer) => {
+const r = (broadCast: Broadcast, producer: SendsMessages): Router => {
     const router = Router()
     router.get('/hello/world', helloWorld)
     router.post('/health/check', withValidRequest(healtCheckPost(broadCast, producer)))

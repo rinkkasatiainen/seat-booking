@@ -1,8 +1,7 @@
+// eslint-disable-next-line max-classes-per-file
 import * as http from 'http'
-import {IncomingMessage} from 'http'
 import express, {Express} from 'express'
 import bodyParser from 'body-parser'
-import WebSocket from 'ws'
 import {ActsAsPool, DisconnectFromPool} from './infra/postgres-db'
 import {Logger} from './logger'
 import healthCheck from './delivery/routes/health-check'
@@ -14,9 +13,7 @@ export interface ServerLike {
     close: () => Promise<void>;
 }
 
-export type WebSocketServer = WebSocket.Server<typeof WebSocket.WebSocket, typeof IncomingMessage>
-
-export interface RabbitMQProducer {
+export interface SendsMessages {
     send: (msg: DomainEvent) => void;
     close: () => void;
 }
@@ -33,13 +30,13 @@ export class Server implements ServerLike {
     private httpServer?: http.Server
     private disconnectPool?: DisconnectFromPool
     private broadcast: Broadcast
-    private producer?: RabbitMQProducer
+    private producer?: SendsMessages
 
     constructor(
         private readonly logger: Logger,
         private readonly createPool: ActsAsPool,
         private readonly wsServer: ActsAsWebSocketServer,
-        private readonly producerProvider: () => Promise<RabbitMQProducer>,
+        private readonly producerProvider: () => Promise<SendsMessages>,
         providesExpress: () => RouteApp
     ) {
         this.app = providesExpress()
@@ -67,7 +64,7 @@ export class Server implements ServerLike {
         await this.disconnectPool?.call(this).catch((err: Error) => {
             this.logger.error(err)
         }).then(() => {
-            this.logger.log('disconnected from X')
+            this.logger.log('disconnected from pool')
         })
         this.producer?.close()
         this.httpServer?.close((err) => {
@@ -124,14 +121,14 @@ export class ExpressApp {
 
     public static createNull(): RouteApp{
         return {
-            // @ts-ignore
+            // @ts-ignore For testing
             use: () => ExpressApp.createNull(),
-            // @ts-ignore
+            // @ts-ignore For testing
             listen: () => {
                 const fakeServer: HttpServerAlias = {
-                    // @ts-ignore
+                    // @ts-ignore For testing
                     close: () => fakeServer,
-                    // @ts-ignore
+                    // @ts-ignore For testing
                     on: () => fakeServer,
                 }
                 return fakeServer

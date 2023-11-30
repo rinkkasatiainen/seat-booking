@@ -1,11 +1,12 @@
 import process from 'process'
 import {config} from 'dotenv'
+import amqp from 'amqplib/callback_api'
 import Server, {ExpressApp} from './server'
 import {Logger} from './logger'
 import createPool from './infra/postgres-db'
 import {ENV, getVars} from './env-vars'
 import {wsServerB} from './infra/websocket/ws-server'
-import createMQProducer from './infra/amqp/producer'
+import {AmqpProducer} from './infra/amqp/producer'
 
 const path = (process.env.NODE_ENV === 'test' ? 'test.env' : 'variables.env')
 config({path})
@@ -21,7 +22,7 @@ const consoleLogger: Logger = {
 
 
 // @ts-ignore To be fixed by typing
-const producer = async () => await createMQProducer(envVars, 'amq.topic')
+const producer = async () => await AmqpProducer.of(envVars, 'amq.topic').start(amqp)
 
 const starter =
     new Server(consoleLogger, createPool(envVars), wsServerB(), producer, ExpressApp.of.bind(ExpressApp))

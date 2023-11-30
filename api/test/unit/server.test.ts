@@ -1,10 +1,10 @@
 import chai from 'chai'
 import chaiSubset from 'chai-subset'
-import Server, {ExpressApp, RabbitMQProducer, RouteApp} from '../src/server'
-import {LogData, Logger, LogsData} from '../src/logger'
-import {ActsAsPool, PgPool} from '../src/infra/postgres-db'
-import {ActsAsWebSocketServer, WsServer} from '../src/infra/websocket/ws-server'
-import {AmqpProducer} from '../src/infra/amqp/producer'
+import Server, {ExpressApp, SendsMessages, RouteApp} from '../../src/server'
+import {LogData, Logger, LogsData} from '../../src/logger'
+import {ActsAsPool, PgPool} from '../../src/infra/postgres-db'
+import {ActsAsWebSocketServer, WsServer} from '../../src/infra/websocket/ws-server'
+import {AmqpProducer} from '../../src/infra/amqp/producer'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -13,7 +13,7 @@ describe('Server startup', () => {
     let server: Server |undefined
     let data: LogData
     let fakeWsServer: ActsAsWebSocketServer
-    let producerProvider: () => Promise<RabbitMQProducer>
+    let producerProvider: () => Promise<SendsMessages>
     let providesExpress: () => RouteApp
     let logger: Logger
     let pool: ActsAsPool

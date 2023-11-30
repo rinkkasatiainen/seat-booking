@@ -43,7 +43,7 @@ export class Matches {
     }
 
     public static toSubset(supSet: X) {
-        // @ts-ignore
+        // @ts-ignore should fail easily
         return {matches: (data: unknown) => !!data && isSubset(data, supSet)}
     }
 }
@@ -94,7 +94,7 @@ const waitFor: (timeInSec: number, cb: () => boolean) => Promise<void> = async (
     fail(`Did not find in time ${timeInSec} seconds`)
 }
 
-const asDomainEventOrNull: (data: Buffer | ArrayBuffer | Buffer[]) => DomainEvent | null = (data) => {
+export const asDomainEventOrNull: (data: Buffer | ArrayBuffer | Buffer[]) => DomainEvent | null = (data) => {
     let jsonData = null
     // eslint-disable-next-line @typescript-eslint/no-base-to-string
     const str = data.toString()

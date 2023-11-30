@@ -27,7 +27,7 @@ export class WsServer implements ActsAsWebSocketServer {
         this.clients = wsServer.clients
     }
 
-    public broadcast(data: DomainEvent) {
+    public broadcast(data: DomainEvent): number {
         this.wsServer.clients.forEach(function each(client) {
             if (client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify(data))
@@ -59,7 +59,7 @@ export class WsServer implements ActsAsWebSocketServer {
     public static of(): ActsAsWebSocketServer {
         const _wsServer = new ws.Server({noServer: true})
         _wsServer.on('connection', socket => {
-            socket.on('message', _message => {
+            socket.on('message', (/* _message*/) => {
                 // eslint-disable-next-line no-console
                 console.log('did receive incoming message from WS.')
             })
@@ -71,7 +71,7 @@ export class WsServer implements ActsAsWebSocketServer {
 
     public static createNull(): ActsAsWebSocketServer {
         const fake: ActsAsWebSocketServer = {
-            broadcast(_data: DomainEvent): number {
+            broadcast(/* _data: DomainEvent*/): number {
                 return 0
             },
             handleUpgrade: noop,
@@ -86,4 +86,4 @@ export class WsServer implements ActsAsWebSocketServer {
 
 }
 
-export const wsServerB = () => WsServer.of()
+export const wsServerB: () => ActsAsWebSocketServer = () => WsServer.of()

@@ -2,11 +2,10 @@ import {knownEvents} from './known-events'
 
 export type KnownEvents = keyof typeof knownEvents
 
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-export type AnyDomainEvent = KnownEvents | string
+export type AnyDomainEvent = KnownEvents
 
 export interface DomainEvent {
-    __type: AnyDomainEvent;
+    __type: string;
 }
 
 export interface KnownDomainEvent<T extends KnownEvents>  extends DomainEvent {

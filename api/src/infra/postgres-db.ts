@@ -24,11 +24,11 @@ export class PgPool {
     private constructor(private readonly pool: Pool) {
     }
 
-    public connect() {
+    public connect(): Promise<PoolClient> {
         return this.pool.connect()
     }
 
-    public disconnect() {
+    public disconnect(): Promise<void>{
         return this.pool.end()
     }
 

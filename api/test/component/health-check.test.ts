@@ -4,12 +4,13 @@ import chai from 'chai'
 import chaiSubset from 'chai-subset'
 import request, {SuperTest, Test} from 'supertest'
 import WebSocket from 'ws'
+import amqp from 'amqplib/callback_api'
 import Server, {ExpressApp, RabbitMQConsumer, ServerLike} from '../../src/server'
 import {Logger} from '../../src/logger'
 import createPool from '../../src/infra/postgres-db'
 import {AMQP_ENV, PG_ENV} from '../../src/env-vars'
 import {wsServerB} from '../../src/infra/websocket/ws-server'
-import createMQProducer from '../../src/infra/amqp/producer'
+import {AmqpProducer} from '../../src/infra/amqp/producer'
 import createMQConsumer from '../../src/infra/amqp/consumer'
 import {DomainEvent, isDomainEvent, isHealthCheck} from '../../src/domain/event'
 import {knownEvents} from '../../src/domain/known-events'
@@ -59,7 +60,7 @@ describe('Health Check of the system', () => {
     let consumer: RabbitMQConsumer<JSONValue>
 
     before(async () => {
-        const producer = async () => await createMQProducer(amqpEnv, 'amq.topic')
+        const producer = async () => await AmqpProducer.of(amqpEnv, 'amq.topic').start(amqp)
         const providesExpress = ExpressApp.of.bind(ExpressApp)
         app = await new Server(logger, createPool(pgEnv), wsServerB(), producer, providesExpress).start(4001)
         // @ts-ignore for testing purposes;
