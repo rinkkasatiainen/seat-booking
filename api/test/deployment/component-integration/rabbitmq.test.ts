@@ -1,15 +1,12 @@
-import process from 'process'
-import {config} from 'dotenv'
 import amqp from 'amqplib/callback_api'
 import {AmqpProducer} from '../../../src/infra/amqp/producer'
 import {AMQP_ENV, getVars} from '../../../src/env-vars'
 import {testDomainEventOf} from '../../unit/test-domain-event'
 import {RabbitSpy, rabbitSpy, StreamSpy, streamSpy} from '../../utils/amqp_stream'
 import {Matches} from '../../utils/ws-stream'
-import {knownEvents} from '../../../src/domain/known-events'
 
-const envFile = (process.env.NODE_ENV === 'test' ? 'test.env' : 'variables.env')
-config({path: `${envFile}`})
+
+import {knownEvents} from '../../../src/domain/known-events'
 
 describe('AMQP Producer', () => {
     let spy: RabbitSpy

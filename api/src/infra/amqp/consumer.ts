@@ -1,47 +1,80 @@
-import amqp, {Message} from 'amqplib/callback_api'
+import * as console from 'console'
+import {Channel, Connection, Message} from 'amqplib/callback_api'
 import {AMQP_ENV} from '../../env-vars'
-import {RabbitMQConsumer} from '../../server'
-import {isDomainEvent} from '../../domain/event'
+import {ListenesMessages} from '../../server'
+import {DomainEvent, isDomainEvent} from '../../domain/event'
 import {createAmqpUrl} from './url'
+import {assertQueue, createChannel} from './producer'
 
+export interface ActsAsConsumer {
+    connect: (url: string, callback: (errorConnect: Error, connection: Connection) => void) => void;
+}
 
-const createMQConsumer: (envVars: AMQP_ENV, queueName: string) => Promise<RabbitMQConsumer<JSONValue>> =
-    async (envVars: AMQP_ENV, queueName: string) => {
-        // console.log('Connecting to RabbitMQ...')
-        const amqpURl = createAmqpUrl(envVars)
-        return await new Promise(res => amqp.connect(amqpURl, (errConn, conn) => {
-            const r: RabbitMQConsumer<JSONValue> = {
-                listen: (callback) => {
-                    if (errConn) {
-                        throw errConn
-                    }
-                    conn.createChannel((errChan, chan) => {
-                        if (errChan) {
-                            throw errChan
+function noop() {/* ?*/
+}
+
+export class AmqpConsumer {
+
+    public static of(envVars: AMQP_ENV, queueName: string): {
+        start: (a: ActsAsConsumer) => Promise<ListenesMessages>;
+    } {
+        const url = createAmqpUrl(envVars)
+        return {
+            start: async (_amqp) => {
+                const closable = await new Promise<{ channel: Channel; conn: Connection }>((res, reject) => {
+                    _amqp.connect(url, (errConn, conn) => {
+                        if (errConn) {
+                            reject(errConn)
                         }
-                        chan.assertQueue(queueName, {durable: true})
-                        chan.consume(queueName, (msg: Message | null) => {
+
+                        createChannel(conn).then(channel => {
+                            assertQueue(channel, queueName, {autoDelete: false}).then(amqpQueue => {
+                                channel.bindQueue(amqpQueue.queue, 'amq.topic', '#', undefined, (errBind) => {
+                                    if (errBind) {
+                                        reject(errBind)
+                                    }
+
+                                    res({channel, conn})
+                                })
+                            }).catch(err => reject(err))
+                        }).catch(err => reject(err))
+                    })
+                })
+
+                return {
+                    onMessage(cb): void {
+                        closable.channel.consume(queueName, (msg: Message | null) => {
                             if (msg) {
                                 const parsed: unknown = JSON.parse(msg.content.toString())
-                                if (isDomainEvent(parsed)){
-                                    callback(parsed)
+                                if (isDomainEvent(parsed)) {
+                                    cb(parsed)
                                 }
                             }
-                        }, {noAck: true})
-                    })
-                },
-                close: () => {
-                    // eslint-disable-next-line no-console
-                    console.log('closing RabbitMQ connection')
-                    conn.close()
-                },
-            }
-            res(r)
-        })
-        )
+                        })
 
+                    },
+                    close: () => {
+                        closable.channel.close(err => {
+                            console.error('could not close channel', err)
+                        })
+                        closable.conn.close()
+                    },
+                }
 
+            },
+        }
     }
 
+    public static createNull(callback?: () => DomainEvent): ListenesMessages {
+        return {
+            close: noop,
+            onMessage: (fn) => {
+                if (callback) {
+                    fn(callback())
+                }
+            },
+        }
+    }
+}
 
-export default createMQConsumer
+

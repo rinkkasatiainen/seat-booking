@@ -5,9 +5,7 @@ import ws from 'ws'
 import WebSocket from 'ws'
 import {connectedToWS, DomainEvent} from '../../domain/event'
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-function noop() {
-}
+function noop() { /**/ }
 
 type WsInstanceType = InstanceType<typeof ws.WebSocket>
 type WsIncomingMessage = InstanceType<typeof IncomingMessage>
@@ -36,17 +34,6 @@ export class WsServer implements ActsAsWebSocketServer {
         return this.wsServer.clients.size
     }
 
-    public close(cb: ((err?: Error) => void) | undefined): void {
-        for (const client of this.wsServer.clients) {
-            client.close()
-        }
-        return this.wsServer.close(cb)
-    }
-
-    public emit(event: 'connection', webSocket: WebSocket.WebSocket, rq: WsIncomingMessage): boolean {
-        return this.wsServer.emit(event, webSocket, rq)
-    }
-
     public handleUpgrade(
         request: WsIncomingMessage,
         socket: internal.Duplex,
@@ -54,6 +41,13 @@ export class WsServer implements ActsAsWebSocketServer {
         this.wsServer.handleUpgrade(request, socket, head, (webSocket) => {
             this.wsServer.emit('connection', webSocket, request)
         })
+    }
+
+    public close(cb: ((err?: Error) => void) | undefined): void {
+        for (const client of this.wsServer.clients) {
+            client.close()
+        }
+        return this.wsServer.close(cb)
     }
 
     public static of(): ActsAsWebSocketServer {
@@ -69,9 +63,12 @@ export class WsServer implements ActsAsWebSocketServer {
         return new WsServer(_wsServer)
     }
 
-    public static createNull(): ActsAsWebSocketServer {
+    public static createNull(spiedBroadcast?: DomainEvent[]): ActsAsWebSocketServer {
         const fake: ActsAsWebSocketServer = {
-            broadcast(/* _data: DomainEvent*/): number {
+            broadcast( data: DomainEvent): number {
+                if(spiedBroadcast){
+                    spiedBroadcast.push(data)
+                }
                 return 0
             },
             handleUpgrade: noop,

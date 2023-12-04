@@ -2,8 +2,10 @@ import chai from 'chai'
 import chaiSubset from 'chai-subset'
 import request from 'supertest'
 import {before} from 'mocha'
-import {knownEvents} from '../../src/domain/known-events'
 import {Matches, WsSpy, wsSpy, wsStream} from '../utils/ws-stream'
+
+
+import {knownEvents} from '../../src/domain/known-events'
 
 const {expect} = chai
 chai.use(chaiSubset)

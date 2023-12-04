@@ -1,39 +1,32 @@
-import {Request, Response, Router} from 'express'
-import {Broadcast, SendsMessages} from '../../server'
-import {healthCheck, HealthCheck} from '../../domain/event'
+import {Broadcast, ListenesMessages, SendsMessages} from '../../server'
+import {connectedToWS, healthCheck, HealthCheck, isDomainEvent, isHealthCheck} from '../../domain/event'
+import {ReqResFn, RequestWithValidData, Routes} from '../express-app'
 
 
-const helloWorld: (req: Request, res: Response) => void =
+const helloWorld: ReqResFn =
     (_, res) => {
         res.send('Hello World, mate!')
     }
 
 
-const healtCheck: (req: Request, res: Response) => void =
+const healtCheck: ReqResFn =
     (_, res) => {
         res.json({status: 'ok'})
     }
 
-interface RequestWithValidData {
-    body: { data: unknown };
-}
+const isObject = (x: unknown): x is { [key: string]: unknown } => typeof x === 'object' && x !== null
 
-type F = (req: RequestWithValidData, res: Response) => void
-
-const isObject = (x: unknown): x is {[key: string]: unknown} => typeof x === 'object' && x !== null
-
-function isValidF(x: unknown): x is RequestWithValidData {
+function doesContainBodyWithData(x: unknown): x is RequestWithValidData {
     if (isObject(x)) {
         const {body} = x
         return typeof body === 'object' && body !== null && 'data' in body
     }
     return false
-
 }
 
-const withValidRequest: (f: F) => (req: Request, res: Response) => void =
+const withValidRequest: (f: ReqResFn) => ReqResFn =
     callbackFn => (req, res) => {
-        if (isValidF(req)) {
+        if (doesContainBodyWithData(req)) {
             return callbackFn(req, res)
         }
         res.status(400).json('INVALID REQUEST')
@@ -41,25 +34,36 @@ const withValidRequest: (f: F) => (req: Request, res: Response) => void =
     }
 
 const healtCheckPost:
-    (broadCast: Broadcast, producer: SendsMessages) => (req: RequestWithValidData, res: Response) => void =
-    (broadCast, producer) => (req, res) => {
+    (a: Broadcast, b: SendsMessages, c: ListenesMessages) => ReqResFn =
+    (broadCast, producer, listener) => (req, res) => {
         const message: unknown = req.body.data
         if (typeof message === 'string') {
             const healthCheckEvent: HealthCheck = healthCheck(message)
-            const count = broadCast(healthCheckEvent)
             producer.send(healthCheckEvent)
+            const count = broadCast(connectedToWS(healthCheckEvent.message))
             res.json({status: {websocket: {status: 'ok', connections: count}}})
+            listener.onMessage((event) => {
+                if (isDomainEvent(event)) {
+                    if(isHealthCheck(event) && event.message === healthCheckEvent.message){
+                        const e: HealthCheck = {...connectedToWS(healthCheckEvent.message), amqp: {status: 'connected'}}
+                        broadCast(e)
+                    }
+                }
+            })
             return
         }
         res.status(400).json({status: 'error', reason: 'invalid data in request'})
     }
 
 
-const r = (broadCast: Broadcast, producer: SendsMessages): Router => {
-    const router = Router()
-    router.get('/hello/world', helloWorld)
-    router.post('/health/check', withValidRequest(healtCheckPost(broadCast, producer)))
-    router.get('/health/check', healtCheck)
-    return router
-}
-export default r
+export type ProvidesRoutes<T extends Routes> = (bc: Broadcast, pr: SendsMessages, li: ListenesMessages) => T
+
+const r: <T extends Routes> (router: T) => ProvidesRoutes<T> =
+    <T extends Routes>(router: T) => (broadCast, producer, listener): T => {
+        router.get('/hello/world', helloWorld)
+        router.post('/health/check', withValidRequest(healtCheckPost(broadCast, producer, listener)))
+        router.get('/health/check', healtCheck)
+        return router
+    }
+
+export const healthCheckRoute: <T extends Routes>(t: T) => ProvidesRoutes<T> = routes => r(routes)

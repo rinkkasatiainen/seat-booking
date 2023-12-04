@@ -5,16 +5,18 @@ import chaiSubset from 'chai-subset'
 import request, {SuperTest, Test} from 'supertest'
 import WebSocket from 'ws'
 import amqp from 'amqplib/callback_api'
-import Server, {ExpressApp, RabbitMQConsumer, ServerLike} from '../../src/server'
+import Server, {ListenesMessages, ServerLike} from '../../src/server'
 import {Logger} from '../../src/logger'
-import createPool from '../../src/infra/postgres-db'
+import {createPool} from '../../src/infra/postgres-db'
 import {AMQP_ENV, PG_ENV} from '../../src/env-vars'
 import {wsServerB} from '../../src/infra/websocket/ws-server'
 import {AmqpProducer} from '../../src/infra/amqp/producer'
-import createMQConsumer from '../../src/infra/amqp/consumer'
+import {AmqpConsumer} from '../../src/infra/amqp/consumer'
 import {DomainEvent, isDomainEvent, isHealthCheck} from '../../src/domain/event'
-import {knownEvents} from '../../src/domain/known-events'
 import {Matches, wsSpy, wsStream} from '../utils/ws-stream'
+import {knownEvents} from '../../src/domain/known-events'
+import {ExpressApp} from '../../src/delivery/express-app'
+import {RabbitSpy, rabbitSpy, streamSpy} from '../utils/amqp_stream'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -57,19 +59,21 @@ const isSubset: (sup: X | undefined, sub: X) => boolean =
 describe('Health Check of the system', () => {
     let app: ServerLike
     let testSession: () => SuperTest<Test>
-    let consumer: RabbitMQConsumer<JSONValue>
+    let consumer: ListenesMessages
+    let rabbitMqSpy: RabbitSpy
 
     before(async () => {
-        const producer = async () => await AmqpProducer.of(amqpEnv, 'amq.topic').start(amqp)
-        const providesExpress = ExpressApp.of.bind(ExpressApp)
-        app = await new Server(logger, createPool(pgEnv), wsServerB(), producer, providesExpress).start(4001)
+        const producer = await AmqpProducer.of(amqpEnv, 'amq.topic').start(amqp)
+        consumer = await AmqpConsumer.of(amqpEnv, 'health-check-test').start(amqp)
+        app = await new Server(logger, createPool(pgEnv), wsServerB(), producer, consumer, ExpressApp.app()).start(4001)
         // @ts-ignore for testing purposes;
         testSession = () => request(app.app)
-        consumer = await createMQConsumer(amqpEnv, 'aki.tmp')
+        rabbitMqSpy = await rabbitSpy()
     })
     after(async () => {
         consumer.close()
         await app.close()
+        rabbitMqSpy.close()
     })
 
     it('Should start server', async () => {
@@ -85,7 +89,7 @@ describe('Health Check of the system', () => {
         const wsClient: WebSocket = new WebSocket('ws://localhost:4001')
         const spy: DomainEvent[] = []
         let connected = false
-        wsClient.on('open', (_: WebSocket) => {
+        wsClient.on('open', (/* _: WebSocket*/) => {
             wsClient.on('message', (data: WebSocket.RawData) => {
                 // eslint-disable-next-line @typescript-eslint/no-base-to-string
                 const str = data.toString()
@@ -122,8 +126,7 @@ describe('Health Check of the system', () => {
             }))
 
         for (let i = 0; i < 5; i++) {
-            // @ts-ignore
-            for (const domainEvent: string of spy) {
+            for (const domainEvent of spy) {
                 if (isHealthCheck(domainEvent)) {
                     if (isSubset({...domainEvent}, {message: 'Hello Websocket Test'})) {
                         console.log('found')
@@ -139,12 +142,8 @@ describe('Health Check of the system', () => {
 
     }).timeout(5000)
 
-    it.skip('should be able to send a health/check and post that on AMQP.', async () => {
-        const spy: DomainEvent[] = []
-        consumer.listen(msg => {
-            spy.push(msg)
-            return null
-        })
+    it('should be able to send a health/check and post that on AMQP.', async () => {
+        const stream = streamSpy(rabbitMqSpy).ofType(knownEvents.HealthCheck).withPayload('amqp')
 
         await testSession().post('/health/check')
             .set('Accept', 'application/json')
@@ -161,20 +160,7 @@ describe('Health Check of the system', () => {
                 })
             }))
 
-        for (let i = 0; i < 5; i++) {
-            const domainEvent = spy[spy.length - 1]
-            // @ts-ignore for testing purposes
-            if (isHealthCheck(domainEvent)) {
-                if (isSubset({...domainEvent}, {message: 'Hello RabbitMQ Test'})) {
-                    console.log('found')
-                    return
-                }
-                console.log('almost')
-            }
-
-            await timer(400)
-        }
-        fail('Should not have found')
+        await stream.waitUntilFound(5)
 
     }).timeout(5000)
 

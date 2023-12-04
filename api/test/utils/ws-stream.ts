@@ -42,7 +42,7 @@ export class Matches {
         return {matches: (data: unknown) => isDomainEvent(data) && key in data}
     }
 
-    public static toSubset(supSet: X) {
+    public static toSubset(supSet: X): CustomMatcher {
         // @ts-ignore should fail easily
         return {matches: (data: unknown) => !!data && isSubset(data, supSet)}
     }
@@ -113,7 +113,7 @@ export const wsSpy: (port: number) => Promise<WsSpy> = async (port) => {
     const elements: unknown[] = []
     const wsClient: WebSocket = new WebSocket(`ws://localhost:${port}`)
     let connected = false
-    wsClient.on('open', (_: WebSocket) => {
+    wsClient.on('open', (/* _: WebSocket */): void => {
         wsClient.on('message', (data: WebSocket.RawData) => {
             elements.push(...[asDomainEventOrNull(data)].filter(v => v !== null))
         })

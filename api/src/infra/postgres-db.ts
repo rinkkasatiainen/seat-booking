@@ -2,9 +2,7 @@ import {Pool, PoolClient, QueryResult} from 'pg'
 
 import {PG_ENV} from '../env-vars'
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-function noop() {
-}
+function noop() { /**/ }
 
 type ConnectedPoolClient = Pick<PoolClient, 'query' | 'release'>
 type CanConnectToPool = Promise<ConnectedPoolClient>;
@@ -19,7 +17,7 @@ export interface ActsAsPool {
 }
 
 
-export class PgPool {
+export class PgPool implements ActsAsPool {
 
     private constructor(private readonly pool: Pool) {
     }
@@ -31,7 +29,6 @@ export class PgPool {
     public disconnect(): Promise<void>{
         return this.pool.end()
     }
-
 
     public static of(pgEnv: Partial<PG_ENV>): ActsAsPool {
         const {PG_PORT, PG_USERNAME, PG_PASSWORD, PG_HOST} = pgEnv
@@ -84,7 +81,4 @@ export class PgPool {
 
 type FakeData = Record<string, unknown[]>
 
-const createPool: (x: Partial<PG_ENV>) => ActsAsPool = pgEnv => PgPool.of.call(this, pgEnv)
-
-// eslint-disable-next-line @typescript-eslint/unbound-method
-export default createPool
+export const createPool: (x: Partial<PG_ENV>) => ActsAsPool = pgEnv => PgPool.of.call(this, pgEnv)

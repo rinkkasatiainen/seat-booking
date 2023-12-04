@@ -4,8 +4,7 @@ export interface Logger {
     error: (err: Error) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-function noop() {}
+function noop() { /**/ }
 
 export interface LogData {
     log: string[];

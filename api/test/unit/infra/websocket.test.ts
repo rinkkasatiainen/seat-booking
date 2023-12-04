@@ -18,10 +18,10 @@ describe('WS server of ActsAsWebServer', () => {
     const mockServerWith: (x: Partial<ws.Server>) => ws.Server = data => {
         const def = {
             clients: new Set<WsInstanceType>(),
-            close: (_cb: (err?: Error) => void) => {
+            close: (/* _cb: (err?: Error) => void*/) => {
                 throw new Error('unexpected call to \'close\'')
             },
-            emit: (_event: Event, _socket: ws.WebSocket, _rq: unknown) => {
+            emit: (/* _event: Event, _socket: ws.WebSocket, _rq: unknown*/) => {
                 throw new Error('unexpected call to \'emit\'')
             },
         }
@@ -66,7 +66,7 @@ describe('WS server of ActsAsWebServer', () => {
             const wsServer1 = wsServer({clients: [_cl], close: dummy()})
             const server = new WsServer(wsServer1)
 
-            server.close(_err => {
+            server.close((/* _err */) => {
                 throw new Error('not here')
             })
 

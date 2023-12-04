@@ -6,6 +6,7 @@ import {AMQP_ENV, getVars} from '../../src/env-vars'
 import {isDomainEvent, KnownEvents} from '../../src/domain/event'
 import {createAmqpUrl} from '../../src/infra/amqp/url'
 import {Matches} from './ws-stream'
+/* eslint-disable no-console */
 
 interface CustomMatcher {
     matches: (data: unknown) => boolean;

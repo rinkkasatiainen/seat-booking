@@ -1,19 +1,18 @@
-import {Channel, Connection} from 'amqplib/callback_api'
+import {Channel, Connection, Replies} from 'amqplib/callback_api'
 import {credentials} from 'amqplib'
+import {Options} from 'amqplib/properties'
 import {AMQP_ENV} from '../../env-vars'
 import {SendsMessages} from '../../server'
 import {DomainEvent} from '../../domain/event'
 import {createAmqpUrl} from './url'
 
-// eslint-disable-next-line @typescript-eslint/no-empty-function
-function noop() {
-}
+function noop() {/**/}
 
 export interface ActsAsProducer {
     connect: (url: string, opts: unknown, callback: (errorConnect: Error, connection: Connection) => void) => void;
 }
 
-function createChannel(connection: Connection): Promise<Channel> {
+export function createChannel(connection: Connection): Promise<Channel> {
     return new Promise((res, rej) => {
         connection.createChannel((errorChannel, channel) => {
             if (errorChannel) {
@@ -25,6 +24,17 @@ function createChannel(connection: Connection): Promise<Channel> {
     })
 }
 
+export function assertQueue(ch: Channel, queue: string, opts: Options.AssertQueue,): Promise<Replies.AssertQueue> {
+    return new Promise((res,rej) => {
+        ch.assertQueue(queue, opts, (err, q) => {
+            if (err){
+                rej(err)
+            }
+            res(q)
+        })
+    } )
+}
+
 export class AmqpProducer {
     public static of(envvars: AMQP_ENV, exchangeName: string): {
         start: (_amqp: ActsAsProducer) => Promise<SendsMessages>;
@@ -32,10 +42,14 @@ export class AmqpProducer {
         return this.Builder(envvars, exchangeName)
     }
 
-    public static createNull(): SendsMessages {
+    public static createNull(spiedBroadcast?: DomainEvent[]): SendsMessages {
         return {
             close: noop,
-            send: noop,
+            send: (msg) => {
+                if (spiedBroadcast) {
+                    spiedBroadcast.push(msg)
+                }
+            },
         }
     }
 
