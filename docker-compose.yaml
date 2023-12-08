@@ -8,7 +8,6 @@ services:
     environment:
       - API_PG_PWD=pass1
       - DB_UR=postgresql+asyncpg://user1:pass1@postgres/api-db
-      - AUTH_SECRET=very-secret
     depends_on:
       - postgres
       - rabbit-dev
@@ -18,6 +17,23 @@ services:
       - workspace:/workspace
     ports:
       - 4000:4000
+
+  bookings:
+    container_name: bookings
+    build:
+      context: ./bookings
+      dockerfile: ./Dockerfile
+    environment:
+      - BOOKINGS_PG_PWD=pass1
+    depends_on:
+      - postgres
+      - rabbit-dev
+    volumes:
+      - ./bookings/dist/src:/workspace/dist/src
+      - ./bookings/src:/workspace/src
+    ports:
+      - 4000:4000
+
 
   postgres:
     container_name: postgres

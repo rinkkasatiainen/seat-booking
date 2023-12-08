@@ -10,8 +10,17 @@ services:
       target: DEV
     environment:
       - API_PG_PWD=pass1
-      - DB_UR=postgresql+asyncpg://user1:pass1@postgres/api-db
-      - AUTH_SECRET=very-secret
+
+  bookings:
+    extends:
+      file: docker-compose.yaml
+      service: bookings
+    build:
+      context: ./bookings
+      dockerfile: ./Dockerfile
+      target: DEV
+    environment:
+      - BOOKINGS_PG_PWD=pass1
 
   postgres:
     extends:
