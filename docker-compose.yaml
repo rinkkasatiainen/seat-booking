@@ -32,7 +32,7 @@ services:
       - ./bookings/dist/src:/workspace/dist/src
       - ./bookings/src:/workspace/src
     ports:
-      - 4000:4000
+      - 4100:4100
 
 
   postgres:
