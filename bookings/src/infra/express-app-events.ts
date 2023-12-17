@@ -1,6 +1,14 @@
-import {TrackedEvent} from '../delivery/express-app'
+import {TrackedEvent} from '../cross-cutting/tracks-requests'
 
-export interface ExpressAppEvents extends TrackedEvent<'listen' | 'use'> {
-    type: 'listen' | 'use';
+// eslint-disable-next-line no-shadow
+export const enum ExpressAppEventTypes {
+    listen = 'listen',
+    use = 'use',
+}
+
+export type ExpressEvents = keyof typeof ExpressAppEventTypes
+
+export interface TrackedExpressAppEvent extends TrackedEvent<ExpressEvents> {
+    type: ExpressEvents;
     args: unknown[];
 }

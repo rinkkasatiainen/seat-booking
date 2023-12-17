@@ -2,8 +2,9 @@ import {fail} from 'assert'
 import process from 'process'
 import {config} from 'dotenv'
 import amqp, {Channel, Connection, Message} from 'amqplib/callback_api'
+import {MessageProperties} from 'amqplib'
 import {AMQP_ENV, getVars} from '../../src/env-vars'
-import {isDomainEvent, KnownEvents} from '../../src/domain/event'
+import {DomainEvent, isDomainEvent, KnownEvents} from '../../src/domain/event'
 import {createAmqpUrl} from '../../src/infra/amqp/url'
 import {CustomMatcher, Matches} from './matches'
 
@@ -20,9 +21,16 @@ export interface StreamSpy {
     waitUntilFound: (timeInSec: number) => Promise<void>;
 }
 
-function noop() { /**/ }
+function noop(): void { /* noop */ }
 const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
 export type RabbitSpy = SpiesStuff & CanBeClosed
+
+export const amqpMessageOf = (domainEvent: DomainEvent): Message => ({
+    content: Buffer.from(JSON.stringify(domainEvent), 'utf-8'),
+    fields: {deliveryTag: 1, redelivered: false, exchange: 'any', routingKey: 'rt'},
+    properties: {} as MessageProperties,
+})
+
 
 const createStreamSpy: <T extends SpiesStuff>(spy: T, filters: CustomMatcher[]) => StreamSpy = (spy, filters) => {
 

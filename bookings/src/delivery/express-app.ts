@@ -3,8 +3,9 @@ import EventEmitter from 'events'
 import * as http from 'http'
 import express, {Request, Response} from 'express'
 import {ApplicationRequestHandler} from 'express-serve-static-core'
-import {ExpressAppEvents} from '../infra/express-app-events'
-import {OutputTracker} from '../infra/output-tracker'
+import {TrackedExpressAppEvent, ExpressEvents} from '../infra/express-app-events'
+import {OutputTracker} from '../cross-cutting/output-tracker'
+import {CanTrackMessages, TracksMessages} from '../cross-cutting/tracks-requests'
 
 const noop = () => {/* noop*/}
 
@@ -38,28 +39,8 @@ export interface TestRoutes extends Routes {
     run: (method: KEYS, url: string) => ReqResFn;
 }
 
-export interface TrackedEvent<T extends string> {
-    type: T;
-}
-
-export class TracksMessages<T extends TrackedEvent<string>> {
-    private readonly eventEmitter: EventEmitter
-
-    constructor() {
-        this.eventEmitter = new EventEmitter()
-    }
-
-    public eventHappened(name: string, event: T): void {
-        this.eventEmitter.emit(name, event)
-    }
-
-    public on(event: string, callback: (data: T) => void): void {
-        this.eventEmitter.on(event, callback)
-    }
-}
-
-export class ExpressApp {
-    private readonly tracksMessages: TracksMessages<ExpressAppEvents>
+export class ExpressApp implements CanTrackMessages<ExpressEvents>{
+    private readonly tracksMessages: TracksMessages<TrackedExpressAppEvent>
     private httpServer?: http.Server
 
     constructor(private readonly _express: ExpressWrapper, private readonly _routes: Routes) {
@@ -83,8 +64,8 @@ export class ExpressApp {
         })
     }
 
-    public trackRequests(): OutputTracker<ExpressAppEvents> {
-        return OutputTracker.create<ExpressAppEvents>(this.tracksMessages, 'EXPRESS APP')
+    public trackRequests(): OutputTracker<TrackedExpressAppEvent> {
+        return OutputTracker.create<TrackedExpressAppEvent>(this.tracksMessages, 'EXPRESS APP')
     }
 
     public close(): void {

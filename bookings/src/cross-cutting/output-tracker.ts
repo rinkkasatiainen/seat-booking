@@ -1,4 +1,4 @@
-import {TrackedEvent, TracksMessages} from '../delivery/express-app'
+import {TrackedEvent, TracksMessages} from './tracks-requests'
 
 export class OutputTracker<T extends TrackedEvent<string>> {
     #data: T[] // variables starting with # are private in JS/TS
