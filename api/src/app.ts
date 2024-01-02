@@ -23,8 +23,8 @@ const consoleLogger: Logger = {
 
 // @ts-ignore To be fixed by typing
 const amqpVars: AMQP_ENV = envVars
-const producer = async () => await AmqpProducer.of(amqpVars, 'amq.topic').start(amqp)
-const listener = async () => await AmqpConsumer.of(amqpVars, 'health-check').start(amqp)
+const producer = async () => await AmqpProducer.of(amqpVars, 'health-check:api').start(amqp)
+const listener = async () => await AmqpConsumer.of(amqpVars, 'health-check-api').start(amqp)
 
 const starter =
     Promise.all([producer(), listener()]).then(([prod, list]) =>

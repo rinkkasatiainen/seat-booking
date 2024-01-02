@@ -4,7 +4,7 @@ import {AMQP_ENV} from '../../env-vars'
 import {ListenesMessages, ListenerCallback} from '../../server'
 import {isDomainEvent} from '../../domain/event'
 import {CanTrackMessages, TracksMessages} from '../../cross-cutting/tracks-requests'
-import {AmqpEvents, TrackedAmqpEvent} from '../amqp-events'
+import {AmqpEvents, generalEvent, TrackedAmqpEvent} from '../amqp-events'
 import {OutputTracker} from '../../cross-cutting/output-tracker'
 import {createAmqpUrl} from './url'
 
@@ -27,19 +27,20 @@ export interface ConnectionLike {
     close: () => void;
 }
 
-interface ChannelLike {
+type ListeningChannel = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     close: (err: any) => void;
     consume: (name: string, cb: (msg: Message | null) => void) => void;
-}
+} & Pick<Channel, 'ack'>
 
 export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEvents> {
     private tracksMessages: TracksMessages<TrackedAmqpEvent>
     private static EVENT_NAME = 'AMQP_CONSUMER_EVENT'
+
     constructor(
         private readonly queueName: string,
         private readonly connection: ConnectionLike,
-        private readonly channel: ChannelLike) {
+        private readonly channel: ListeningChannel) {
         this.tracksMessages = new TracksMessages()
     }
 
@@ -47,7 +48,8 @@ export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEven
         this.channel.consume(this.queueName, (msg: Message | null) => {
             if (msg) {
                 const parsed: unknown = JSON.parse(msg.content.toString())
-                this.tracksMessages.eventHappened(AmqpConsumer.EVENT_NAME,{type: 'listen', args: [{msg: parsed}]} )
+                this.tracksMessages.eventHappened(AmqpConsumer.EVENT_NAME, {type: 'listen', args: [{msg: parsed}]})
+                // this.channel.ack(msg)
                 if (isDomainEvent(parsed)) {
                     fn(parsed)
                 }
@@ -97,7 +99,7 @@ export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEven
     public static createNull(args?: Partial<{
         qName: string;
         conn: ConnectionLike;
-        channel: ChannelLike;
+        channel: ListeningChannel;
     }>): Promise<AmqpConsumer> {
         const {qName, conn, channel} = {
             qName: 'testQ-irrelevant', conn: new StubbedConnection(), channel: new StubbedChannel(),
@@ -111,7 +113,7 @@ export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEven
 
 type ConsumesEvent = (msg: (Message | null)) => void;
 
-export class StubbedChannel implements ChannelLike {
+export class StubbedChannel implements ListeningChannel {
     private readonly listeners: Record<string, ConsumesEvent[]>
 
     constructor() {
@@ -119,9 +121,13 @@ export class StubbedChannel implements ChannelLike {
     }
 
     public close(): void {
-        for( const k of Object.keys( this.listeners )){
+        for (const k of Object.keys(this.listeners)) {
             delete this.listeners[k]
         }
+    }
+
+    public ack(/* _msg: Message*/): void {
+        /* noop*/
     }
 
     public consume(name: string, cb: ConsumesEvent): void {
@@ -139,8 +145,24 @@ export class StubbedChannel implements ChannelLike {
 }
 
 export class StubbedConnection implements ConnectionLike {
+    private listeners: Record<string, TracksMessages<TrackedAmqpEvent>>
+
+    constructor() {
+        this.listeners = {}
+    }
+
+    public trackRequests(): OutputTracker<TrackedAmqpEvent> {
+        const tracksMessages = new TracksMessages<TrackedAmqpEvent>()
+        this.listeners.closed = tracksMessages
+
+        return OutputTracker.create(tracksMessages, 'event')
+    }
+
     public close(): void {
-        /* noop*/
+        for (const [key, tracksMessages] of Object.entries(this.listeners)) {
+            tracksMessages.eventHappened('event', generalEvent(['closed']))
+            delete this.listeners[key]
+        }
     }
 }
 

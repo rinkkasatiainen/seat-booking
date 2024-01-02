@@ -1,4 +1,4 @@
-import {DomainEvent} from '../domain/event'
+import {DomainEvent, isDomainEvent, isHealthCheck} from '../domain/event'
 import {ExpressApp} from '../delivery/express-app'
 import {LogsData} from '../logger'
 import {healthCheckRoute} from '../delivery/routes/health-check'
@@ -27,6 +27,7 @@ export class Server implements ActsAsServer {
     private constructor(
         private readonly logger: LogsData,
         private readonly listener: ListenesMessages,
+        private readonly producer: SendsMessages,
         private readonly routeApp: ExpressApp
     ) {
     }
@@ -35,8 +36,12 @@ export class Server implements ActsAsServer {
         await this.routeApp.listen(port, () => {
             this.logger.info(`Listening on port ${port}`)
         })
-        this.listener.onMessage( () => {
-            /* noop, just make it listen */
+        this.listener.onMessage( (event) => {
+            if (isDomainEvent(event)) {
+                if(isHealthCheck(event)){
+                    this.producer.send(event)
+                }
+            }
         })
         this.routeApp.routeFor('/', healthCheckRoute() )
         return this
@@ -49,12 +54,12 @@ export class Server implements ActsAsServer {
     public static of(
         logger: LogsData,
         listener: ListenesMessages,
-        /* producer: SendsMessages,*/
+        producer: SendsMessages,
         routeApp: ExpressApp): {
         start: (port: number) => Promise<ActsAsServer>;
     } {
         return {
-            start: async (port) => await new Server(logger, listener, /* producer, listener,*/ routeApp).start(port),
+            start: async (port) => await new Server(logger, listener, producer, routeApp).start(port),
         }
     }
 }

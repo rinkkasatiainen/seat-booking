@@ -4,9 +4,10 @@ import {Options} from 'amqplib/properties'
 import {AMQP_ENV} from '../../env-vars'
 import {SendsMessages} from '../../server'
 import {DomainEvent} from '../../domain/event'
-import {createAmqpUrl} from './url'
+import {createAmqpUrl, ExchangeName, parseExchangeName} from './url'
 
-function noop() {/**/}
+function noop() {/**/
+}
 
 export interface ActsAsProducer {
     connect: (url: string, opts: unknown, callback: (errorConnect: Error, connection: Connection) => void) => void;
@@ -25,21 +26,22 @@ export function createChannel(connection: Connection): Promise<Channel> {
 }
 
 export function assertQueue(ch: Channel, queue: string, opts: Options.AssertQueue,): Promise<Replies.AssertQueue> {
-    return new Promise((res,rej) => {
+    return new Promise((res, rej) => {
         ch.assertQueue(queue, opts, (err, q) => {
-            if (err){
+            if (err) {
                 rej(err)
             }
             res(q)
         })
-    } )
+    })
 }
 
 export class AmqpProducer {
-    public static of(envvars: AMQP_ENV, exchangeName: string): {
+    public static of(envvars: AMQP_ENV, exchange: ExchangeName): {
         start: (_amqp: ActsAsProducer) => Promise<SendsMessages>;
     } {
-        return this.Builder(envvars, exchangeName)
+        const topic = parseExchangeName(exchange)
+        return this.Builder(envvars, topic.exchangeName, topic.routingKey)
     }
 
     public static createNull(spiedBroadcast?: DomainEvent[]): SendsMessages {
@@ -53,7 +55,7 @@ export class AmqpProducer {
         }
     }
 
-    private static Builder(envvars: AMQP_ENV, exchangeName: string) {
+    private static Builder(envvars: AMQP_ENV, exchangeName: string, routingKey: string) {
         return {
             start: async (_amqp: ActsAsProducer): Promise<SendsMessages> => {
                 const url = createAmqpUrl(envvars)
@@ -68,7 +70,7 @@ export class AmqpProducer {
                             createChannel(connection).then(channel => {
                                 const producer: SendsMessages = {
                                     send: (msg: DomainEvent) => {
-                                        channel.publish(exchangeName, 'msg', Buffer.from(JSON.stringify(msg)))
+                                        channel.publish(exchangeName, routingKey, Buffer.from(JSON.stringify(msg)))
                                     },
                                     close: () => {
                                         channel.close((err) => {

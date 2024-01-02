@@ -13,10 +13,12 @@ import {wsServerB} from '../../src/infra/websocket/ws-server'
 import {AmqpProducer} from '../../src/infra/amqp/producer'
 import {AmqpConsumer} from '../../src/infra/amqp/consumer'
 import {DomainEvent, isDomainEvent, isHealthCheck} from '../../src/domain/event'
-import {Matches, wsSpy, wsStream} from '../utils/ws-stream'
+import {wsSpy, wsStream} from '../utils/ws-stream'
 import {knownEvents} from '../../src/domain/known-events'
 import {ExpressApp} from '../../src/delivery/express-app'
-import {RabbitSpy, rabbitSpy, streamSpy} from '../utils/amqp_stream'
+import {RabbitSpy, rabbitSpy} from '../utils/amqp_stream'
+import {streamSpy} from '../utils/stream'
+import {Matches} from '../utils/matches'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -63,12 +65,12 @@ describe('Health Check of the system', () => {
     let rabbitMqSpy: RabbitSpy
 
     before(async () => {
-        const producer = await AmqpProducer.of(amqpEnv, 'amq.topic').start(amqp)
+        const producer = await AmqpProducer.of(amqpEnv, 'health-check:api').start(amqp)
         consumer = await AmqpConsumer.of(amqpEnv, 'health-check-test').start(amqp)
         app = await new Server(logger, createPool(pgEnv), wsServerB(), producer, consumer, ExpressApp.app()).start(4001)
         // @ts-ignore for testing purposes;
         testSession = () => request(app.app)
-        rabbitMqSpy = await rabbitSpy()
+        rabbitMqSpy = await rabbitSpy('health-check:api')
     })
     after(async () => {
         consumer.close()

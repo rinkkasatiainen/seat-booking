@@ -45,6 +45,7 @@ export class AmqpConsumer {
                     onMessage(cb): void {
                         closable.channel.consume(queueName, (msg: Message | null) => {
                             if (msg) {
+                                closable.channel.ack(msg)
                                 const parsed: unknown = JSON.parse(msg.content.toString())
                                 if (isDomainEvent(parsed)) {
                                     cb(parsed)

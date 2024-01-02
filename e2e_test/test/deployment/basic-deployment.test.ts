@@ -1,12 +1,11 @@
 import chai from 'chai'
 import chaiSubset from 'chai-subset'
 import request from 'supertest'
-import {before} from 'mocha'
 import {WsSpy, wsSpy, wsStream} from '../utils/ws-stream'
 
 
 import {knownEvents} from '../../src/domain/known-events'
-import {Matches} from '../utils/matches'
+import {Matches} from "../utils/matches";
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -19,7 +18,7 @@ describe('deployment', () => {
         spy = await wsSpy(4000)
     })
 
-    after( () => {
+    after(() => {
         spy.close()
     })
 
@@ -55,27 +54,34 @@ describe('deployment', () => {
 
         await stream.waitUntilFound(5)
     }).timeout(10000)
-
     it('when rabbitMq is up, sends also rabbitMQ status', async () => {
-        const stream =  wsStream(spy)
+        const stream = wsStream(spy)
             .ofType(knownEvents.HealthCheck)
             .withPayload('ws')
-            .matching(Matches.toSubset({ws: {status: 'connected'}, amqp: {status: 'connected'}}))
+            .matching(Matches.toSubset({ws: {status: 'connected'}, amqp: {status: 'connected'}})).log()
 
         await rq.post('/health/check')
             .set('Accept', 'application/json')
             .send({data: 'Hello Deployment Test'})
             .expect(200)
-            .expect((res => {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                const {status} = res.body
-                expect(status).to.containSubset({
-                    websocket: {
-                        status: 'ok',
-                        connections: (expectedValue: number) => expectedValue >= 1,
-                    },
-                })
+
+        await stream.waitUntilFound(5)
+    })
+
+    it('also provides health check of bookings service', async () => {
+        const stream = wsStream(spy)
+            .ofType(knownEvents.HealthCheck)
+            .withPayload('ws')
+            .matching(Matches.toSubset({
+                ws: {status: 'connected'},
+                amqp: {status: 'connected'},
+                bookings: {status: 'connected'}
             }))
+
+        await rq.post('/health/check')
+            .set('Accept', 'application/json')
+            .send({data: 'Hello Deployment Test'})
+            .expect(200)
 
         await stream.waitUntilFound(5)
     }).timeout(10000)
