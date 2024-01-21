@@ -4,6 +4,7 @@ import {Options} from 'amqplib/properties'
 import {AMQP_ENV} from '../../env-vars'
 import {SendsMessages} from '../../server'
 import {DomainEvent} from '../../domain/event'
+import {TrackedMessage} from '../../domain/tracked-message'
 import {createAmqpUrl, ExchangeName, parseExchangeName} from './url'
 
 function noop() {/**/
@@ -49,7 +50,7 @@ export class AmqpProducer {
             close: noop,
             send: (msg) => {
                 if (spiedBroadcast) {
-                    spiedBroadcast.push(msg)
+                    spiedBroadcast.push( msg.data)
                 }
             },
         }
@@ -69,7 +70,7 @@ export class AmqpProducer {
 
                             createChannel(connection).then(channel => {
                                 const producer: SendsMessages = {
-                                    send: (msg: DomainEvent) => {
+                                    send: (msg: TrackedMessage<DomainEvent>) => {
                                         channel.publish(exchangeName, routingKey, Buffer.from(JSON.stringify(msg)))
                                     },
                                     close: () => {

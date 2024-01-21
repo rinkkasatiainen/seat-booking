@@ -3,7 +3,7 @@ import EventEmitter from 'events'
 import * as http from 'http'
 import express, {Request, Response} from 'express'
 import {ApplicationRequestHandler} from 'express-serve-static-core'
-import {TrackedExpressAppEvent, ExpressEvents} from '../infra/express-app-events'
+import {TrackedExpressAppEvent, ExpressEvents} from '../common/infra/express-app-events'
 import {OutputTracker} from '../cross-cutting/output-tracker'
 import {CanTrackMessages, TracksMessages} from '../cross-cutting/tracks-requests'
 

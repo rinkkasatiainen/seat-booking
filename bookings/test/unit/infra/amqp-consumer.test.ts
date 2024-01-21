@@ -1,11 +1,11 @@
 import chai from 'chai'
 import chaiSubset from 'chai-subset'
 import {MessageProperties} from 'amqplib'
-import {AmqpConsumer, StubbedChannel, StubbedConnection} from '../../../src/infra/amqp/consumer'
+import {AmqpConsumer, StubbedChannel, StubbedConnection} from '../../../src/common/infra/amqp/consumer'
 import {testDomainEventOf} from '../../utils/test-domain-event'
 import {amqpMessageOf} from '../../utils/amqp_stream'
 import {OutputTracker} from '../../../src/cross-cutting/output-tracker'
-import {TrackedAmqpEvent} from '../../../src/infra/amqp-events'
+import {TrackedAmqpEvent} from '../../../src/common/infra/amqp-events'
 
 const {expect} = chai
 chai.use(chaiSubset)

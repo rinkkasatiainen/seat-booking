@@ -1,4 +1,4 @@
-import {AMQP_ENV} from '../../env-vars'
+import {AMQP_ENV} from '../../../env-vars'
 
 // eslint-disable-next-line no-shadow
 enum Xc {

@@ -8,6 +8,7 @@ import {healthCheckRoute} from './delivery/routes/health-check'
 import {DomainEvent} from './domain/event'
 import {ActsAsWebSocketServer} from './infra/websocket/ws-server'
 import {RouteApp} from './delivery/express-app'
+import {TrackedMessage} from './domain/tracked-message'
 
 export interface ServerLike {
     start: (port: number) => Promise<ServerLike>;
@@ -15,11 +16,11 @@ export interface ServerLike {
 }
 
 export interface SendsMessages {
-    send: (msg: DomainEvent) => void;
+    send: (msg: TrackedMessage<DomainEvent>) => void;
     close: () => void;
 }
 
-export type ListenerCallback = (x: DomainEvent) => void;
+export type ListenerCallback = (x: TrackedMessage<DomainEvent>) => void;
 export interface ListenesMessages {
     onMessage: (fn: ListenerCallback) => void;
     close: () => void;

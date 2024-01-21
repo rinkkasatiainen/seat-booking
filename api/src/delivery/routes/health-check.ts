@@ -1,7 +1,7 @@
 import {Broadcast, ListenesMessages, SendsMessages} from '../../server'
-import {connectedToWS, healthCheck, HealthCheck, isDomainEvent, isHealthCheck} from '../../domain/event'
+import {connectedToWS, DomainEvent, healthCheck, HealthCheck, isDomainEvent, isHealthCheck} from '../../domain/event'
 import {ReqResFn, RequestWithValidData, Routes} from '../express-app'
-
+import {isTracked, trackDomainMessage, TrackedMessage} from '../../domain/tracked-message'
 
 const helloWorld: ReqResFn =
     (_, res) => {
@@ -39,14 +39,21 @@ const healtCheckPost:
         const message: unknown = req.body.data
         if (typeof message === 'string') {
             const healthCheckEvent: HealthCheck = healthCheck(message)
-            producer.send(healthCheckEvent)
-            const count = broadCast(connectedToWS(healthCheckEvent.message))
+            const trackedMessage:  TrackedMessage<DomainEvent> = trackDomainMessage(healthCheckEvent)
+            producer.send(trackedMessage)
+
+            const healthCheckMessage = connectedToWS(healthCheckEvent.message)
+            const count = broadCast(healthCheckMessage)
             res.json({status: {websocket: {status: 'ok', connections: count}}})
+
             listener.onMessage((event) => {
-                if (isDomainEvent(event)) {
-                    if(isHealthCheck(event) && event.message === healthCheckEvent.message){
-                        const e: HealthCheck = {...connectedToWS(healthCheckEvent.message), amqp: {status: 'connected'}}
-                        broadCast(e)
+                if ( isTracked(isDomainEvent)(event)) {
+                    if (event.uuid === trackedMessage.uuid) {
+                        const domainMsg = event.data
+                        if (isHealthCheck(domainMsg)) {
+                            const e: HealthCheck = {...healthCheckMessage, amqp: {status: 'connected'}}
+                            broadCast(e)
+                        }
                     }
                 }
             })

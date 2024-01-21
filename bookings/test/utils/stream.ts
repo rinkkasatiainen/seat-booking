@@ -1,6 +1,6 @@
-import {CustomMatcher, Matches} from "./matches";
-import {fail} from "assert";
-import {KnownEvents} from "../../src/domain/event";
+import {fail} from 'assert'
+import {KnownEvents} from '../../src/domain/event'
+import {CustomMatcher, Matches} from './matches'
 
 export interface SpiesStuff {
     elements: () => unknown[];
@@ -46,7 +46,7 @@ export const createStreamSpy: <T extends SpiesStuff>(spy: T, filters: CustomMatc
                     if (elements.length > 0) {
                         return
                     }
-                    await timer(loopAmount)
+                    await timer(waitTimeInMs)
                 }
                 logs()
                 fail(`Did not find, total amount of messages received is ${spy.elements().length}`)

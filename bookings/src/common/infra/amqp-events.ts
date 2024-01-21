@@ -1,4 +1,4 @@
-import {TrackedEvent} from '../cross-cutting/tracks-requests'
+import {TrackedEvent} from '../../cross-cutting/tracks-requests'
 
 // This is a bug in es-lint
 // eslint-disable-next-line no-shadow

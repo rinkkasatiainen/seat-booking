@@ -2,9 +2,9 @@ import chai from 'chai'
 import chaiSubset from 'chai-subset'
 import {testDomainEventOf} from '../../utils/test-domain-event'
 import {OutputTracker} from '../../../src/cross-cutting/output-tracker'
-import {TrackedAmqpEvent} from '../../../src/infra/amqp-events'
-import {AmqpProducer, StubbedBroadcast} from '../../../src/infra/amqp/producer'
-import {StubbedConnection} from '../../../src/infra/amqp/consumer'
+import {TrackedAmqpEvent} from '../../../src/common/infra/amqp-events'
+import {AmqpProducer, StubbedBroadcast} from '../../../src/common/infra/amqp/producer'
+import {StubbedConnection} from '../../../src/common/infra/amqp/consumer'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -29,7 +29,7 @@ describe('Happens to Stub the AMQProducer', () => {
 
     it('it sends a domain event', () => {
         const domainEvent = testDomainEventOf('foobar')
-        tracksMessages = channel.trackRequests('exchange-name', 'routing-key')
+        tracksMessages = channel.trackRequests('health-check', 'responses')
 
         producer.send(domainEvent)
 

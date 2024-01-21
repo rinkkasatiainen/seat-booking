@@ -3,6 +3,7 @@ import {Channel, Connection, Message} from 'amqplib/callback_api'
 import {AMQP_ENV} from '../../env-vars'
 import {ListenesMessages} from '../../server'
 import {DomainEvent, isDomainEvent} from '../../domain/event'
+import {isTracked, TrackedMessage} from '../../domain/tracked-message'
 import {createAmqpUrl} from './url'
 import {assertQueue, createChannel} from './producer'
 
@@ -47,7 +48,7 @@ export class AmqpConsumer {
                             if (msg) {
                                 closable.channel.ack(msg)
                                 const parsed: unknown = JSON.parse(msg.content.toString())
-                                if (isDomainEvent(parsed)) {
+                                if (isTracked(isDomainEvent)(parsed)) {
                                     cb(parsed)
                                 }
                             }
@@ -66,7 +67,7 @@ export class AmqpConsumer {
         }
     }
 
-    public static createNull(callback?: () => DomainEvent): ListenesMessages {
+    public static createNull(callback?: () => TrackedMessage<DomainEvent>): ListenesMessages {
         return {
             close: noop,
             onMessage: (fn) => {

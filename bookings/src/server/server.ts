@@ -39,7 +39,8 @@ export class Server implements ActsAsServer {
         this.listener.onMessage( (event) => {
             if (isDomainEvent(event)) {
                 if(isHealthCheck(event)){
-                    this.producer.send(event)
+                    const newEvent = {...event, amqp: {status: 'connected'}}
+                    this.producer.send(newEvent)
                 }
             }
         })

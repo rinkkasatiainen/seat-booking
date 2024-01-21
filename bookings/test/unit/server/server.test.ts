@@ -5,12 +5,12 @@ import {LogsData} from '../../../src/logger'
 import {ExpressApp} from '../../../src/delivery/express-app'
 import {ActsAsServer} from '../../../src/server/server'
 import {OutputTracker} from '../../../src/cross-cutting/output-tracker'
-import {AmqpConsumer, StubbedChannel} from '../../../src/infra/amqp/consumer'
+import {AmqpConsumer, StubbedChannel} from '../../../src/common/infra/amqp/consumer'
 import {testDomainEventOf} from '../../utils/test-domain-event'
 import {amqpMessageOf} from '../../utils/amqp_stream'
-import {TrackedAmqpEvent} from '../../../src/infra/amqp-events'
+import {TrackedAmqpEvent} from '../../../src/common/infra/amqp-events'
 import {healthCheck} from '../../../src/domain/event'
-import {AmqpProducer, StubbedBroadcast} from '../../../src/infra/amqp/producer'
+import {AmqpProducer, StubbedBroadcast} from '../../../src/common/infra/amqp/producer'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -71,7 +71,7 @@ describe('Bookings server', () => {
         })
 
         it('sends health check message to producer as response.', () => {
-            const tracksMessages = prodChannel.trackRequests('exchange-name', 'routing-key')
+            const tracksMessages = prodChannel.trackRequests('health-check', 'responses')
             listeningChannel.simulate(queueName, amqpMessageOf(healthCheck('a test health check event')))
 
             const events: unknown = tracksMessages.data()

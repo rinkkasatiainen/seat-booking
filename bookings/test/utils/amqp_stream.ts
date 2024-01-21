@@ -4,8 +4,8 @@ import amqp, {Channel, Connection, Message} from 'amqplib/callback_api'
 import {MessageProperties} from 'amqplib'
 import {AMQP_ENV, getVars} from '../../src/env-vars'
 import {DomainEvent, isDomainEvent} from '../../src/domain/event'
-import {createAmqpUrl, ExchangeName, parseExchangeName} from '../../src/infra/amqp/url'
-import {noop, SpiesStuff} from "./stream";
+import {createAmqpUrl, ExchangeName, parseExchangeName} from '../../src/common/infra/amqp/url'
+import {noop, SpiesStuff} from './stream'
 
 /* eslint-disable no-console */
 

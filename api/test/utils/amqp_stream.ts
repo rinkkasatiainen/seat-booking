@@ -5,7 +5,8 @@ import {MessageProperties} from 'amqplib'
 import {AMQP_ENV, getVars} from '../../src/env-vars'
 import {DomainEvent, isDomainEvent} from '../../src/domain/event'
 import {createAmqpUrl, ExchangeName, parseExchangeName} from '../../src/infra/amqp/url'
-import {noop, SpiesStuff} from "./stream";
+import {isTracked} from '../../src/domain/tracked-message'
+import {noop, SpiesStuff} from './stream'
 
 /* eslint-disable no-console */
 
@@ -54,8 +55,8 @@ export const rabbitSpy: (x: ExchangeName) => Promise<RabbitSpy> = async (topic) 
                         channel.consume(queue.queue, (msg: Message | null) => {
                             if (msg) {
                                 const parsed: unknown = JSON.parse(msg.content.toString())
-                                if (isDomainEvent(parsed)) {
-                                    elements.push(parsed)
+                                if (isTracked(isDomainEvent)(parsed)) {
+                                    elements.push(parsed.data)
                                 }
                             }
                         })

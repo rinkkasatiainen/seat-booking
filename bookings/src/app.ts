@@ -4,9 +4,9 @@ import {Server} from './server'
 import {AMQP_ENV, ENV, getVars} from './env-vars'
 import {ExpressApp} from './delivery/express-app'
 import {LogsData} from './logger'
-import {AmqpConsumer} from './infra/amqp/consumer'
+import {AmqpConsumer} from './common/infra/amqp/consumer'
 import {ActsAsServer} from './server/server'
-import {AmqpProducer} from './infra/amqp/producer'
+import {AmqpProducer} from './common/infra/amqp/producer'
 
 const path = (process.env.NODE_ENV === 'test' ? 'test.env' : 'variables.env')
 config({path})

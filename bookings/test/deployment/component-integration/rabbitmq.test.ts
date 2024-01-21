@@ -1,4 +1,4 @@
-import {AmqpProducer} from '../../../src/infra/amqp/producer'
+import {AmqpProducer} from '../../../src/common/infra/amqp/producer'
 import {AMQP_ENV, getVars} from '../../../src/env-vars'
 import {testDomainEventOf} from '../../utils/test-domain-event'
 import {RabbitSpy, rabbitSpy} from '../../utils/amqp_stream'
@@ -22,7 +22,7 @@ describe('AMQP Producer', () => {
 
     it('does send a message', async () => {
         stream = stream.ofType(knownEvents.HealthCheck)
-            .withPayload('data')
+            .withPayload('data').log()
             .matching(Matches.toSubset({data: 'Sending to RabbitMQ'}))
 
         // const producer = await createMQProducer2(envVars, 'amq.topic')
@@ -31,9 +31,9 @@ describe('AMQP Producer', () => {
         producer.send(testDomainEventOf('Sending to RabbitMQ'))
 
         try {
-            await stream.waitUntilFound(5)
+            await stream.waitUntilFound(3)
         } finally {
             producer.close()
         }
-    })
+    }).timeout(6000)
 })

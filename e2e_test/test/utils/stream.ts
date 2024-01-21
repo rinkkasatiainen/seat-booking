@@ -46,7 +46,7 @@ export const createStreamSpy: <T extends SpiesStuff>(spy: T, filters: CustomMatc
                     if (elements.length > 0) {
                         return
                     }
-                    await timer(loopAmount)
+                    await timer(waitTimeInMs)
                 }
                 logs()
                 fail(`Did not find, total amount of messages received is ${spy.elements().length}`)

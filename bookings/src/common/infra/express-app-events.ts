@@ -1,4 +1,4 @@
-import {TrackedEvent} from '../cross-cutting/tracks-requests'
+import {TrackedEvent} from '../../cross-cutting/tracks-requests'
 
 // eslint-disable-next-line no-shadow
 export const enum ExpressAppEventTypes {

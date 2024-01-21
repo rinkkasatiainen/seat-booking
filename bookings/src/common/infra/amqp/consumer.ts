@@ -1,11 +1,11 @@
 // eslint-disable-next-line max-classes-per-file
 import amqp, {Channel, Connection, Message} from 'amqplib/callback_api'
-import {AMQP_ENV} from '../../env-vars'
-import {ListenesMessages, ListenerCallback} from '../../server'
-import {isDomainEvent} from '../../domain/event'
-import {CanTrackMessages, TracksMessages} from '../../cross-cutting/tracks-requests'
+import {AMQP_ENV} from '../../../env-vars'
+import {ListenesMessages, ListenerCallback} from '../../../server'
+import {isDomainEvent} from '../../../domain/event'
+import {CanTrackMessages, TracksMessages} from '../../../cross-cutting/tracks-requests'
 import {AmqpEvents, generalEvent, TrackedAmqpEvent} from '../amqp-events'
-import {OutputTracker} from '../../cross-cutting/output-tracker'
+import {OutputTracker} from '../../../cross-cutting/output-tracker'
 import {createAmqpUrl} from './url'
 
 import {assertQueue, bindQueue, createChannel} from './queue-handling'

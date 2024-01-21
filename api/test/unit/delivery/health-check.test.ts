@@ -7,6 +7,7 @@ import {AmqpConsumer} from '../../../src/infra/amqp/consumer'
 import {ExpressApp, TestRoutes} from '../../../src/delivery/express-app'
 import {DomainEvent, healthCheck} from '../../../src/domain/event'
 import {testDomainEventOf} from '../test-domain-event'
+import {trackDomainMessage} from '../../../src/domain/tracked-message'
 
 const {expect} = chai
 
@@ -20,14 +21,15 @@ describe('health check route', () => {
         const broadcast = WsServer.createNull(spiedBroadcast).broadcast
         const route = healthCheckRoute(routes)(broadcast,
             AmqpProducer.createNull(),
-            AmqpConsumer.createNull(() => testDomainEventOf('foobar'))
+            AmqpConsumer.createNull(() => trackDomainMessage(testDomainEventOf('foobar')))
         )
 
         const message = 'Message from Test!'
-        const req = { body: { data: message}} as Request
+        const req = {body: {data: message}} as Request
         const res = {
             status: (/* _num: number*/) => res,
-            json: (/* _body*/) => {/**/},
+            json: (/* _body*/) => {/**/
+            },
         } as unknown as Response
         route.run('POST', '/health/check')(req, res)
 

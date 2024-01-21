@@ -1,4 +1,4 @@
-import {fail} from "assert";
+import {fail} from 'assert'
 
 export const waitFor: (timeInSec: number, cb: () => boolean) => Promise<void> = async (timeInSec, cb) => {
     const timeInMs = timeInSec * 1000

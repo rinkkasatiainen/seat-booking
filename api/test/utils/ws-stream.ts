@@ -1,7 +1,7 @@
 import WebSocket from 'ws'
 import {DomainEvent, isDomainEvent} from '../../src/domain/event'
-import {createStreamSpy, SpiesStuff, StreamSpy} from "./stream";
-import {waitFor} from "./wait-for";
+import {createStreamSpy, SpiesStuff, StreamSpy} from './stream'
+import {waitFor} from './wait-for'
 
 export interface WsSpy extends SpiesStuff {
     close: () => void;

@@ -33,8 +33,7 @@ describe('ExpressApp shallow integration', () => {
 
         await testSession.get('/foo').expect(200)
             .expect((res => {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                expect(res.body.status).to.eql('ok')
+                expect(res.body.status).to.eql('ok') // eslint-disable-line @typescript-eslint/no-unsafe-member-access
             }))
     })
 

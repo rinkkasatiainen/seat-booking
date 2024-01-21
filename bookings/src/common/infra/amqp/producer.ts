@@ -1,12 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
 import amqp, {Channel, Connection, credentials} from 'amqplib/callback_api'
 import {Options} from 'amqplib/properties'
-import {SendsMessages} from '../../server'
-import {OutputTracker} from '../../cross-cutting/output-tracker'
+import {SendsMessages} from '../../../server'
+import {OutputTracker} from '../../../cross-cutting/output-tracker'
 import {broadcastEvent, errorEvent, generalEvent, TrackedAmqpEvent} from '../amqp-events'
-import {DomainEvent} from '../../domain/event'
-import {TracksMessages} from '../../cross-cutting/tracks-requests'
-import {AMQP_ENV} from '../../env-vars'
+import {DomainEvent} from '../../../domain/event'
+import {TracksMessages} from '../../../cross-cutting/tracks-requests'
+import {AMQP_ENV} from '../../../env-vars'
 import {ConnectionLike, StubbedConnection} from './consumer'
 import {createAmqpUrl, ExchangeName, parseExchangeName, XcTopic} from './url'
 import {createChannel} from './queue-handling'
@@ -88,7 +88,7 @@ export class AmqpProducer implements SendsMessages {
     public static createNull(args: NullArgs): AmqpProducer {
         const defaultArgs = {connection: new StubbedConnection(), channel: new StubbedBroadcast()}
         const {channel, connection} = {...defaultArgs, ...args}
-        return new AmqpProducer(connection, channel, new XcTopic('health-check', 'bookings'))
+        return new AmqpProducer(connection, channel, new XcTopic('health-check', 'responses'))
     }
 }
 
