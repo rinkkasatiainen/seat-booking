@@ -5,20 +5,20 @@ import chaiSubset from 'chai-subset'
 import request, {SuperTest, Test} from 'supertest'
 import WebSocket from 'ws'
 import amqp from 'amqplib/callback_api'
-import Server, {ListenesMessages, ServerLike} from '../../src/server'
-import {Logger} from '../../src/logger'
-import {createPool} from '../../src/infra/postgres-db'
-import {AMQP_ENV, PG_ENV} from '../../src/env-vars'
-import {wsServerB} from '../../src/infra/websocket/ws-server'
-import {AmqpProducer} from '../../src/infra/amqp/producer'
-import {AmqpConsumer} from '../../src/infra/amqp/consumer'
-import {DomainEvent, isDomainEvent, isHealthCheck} from '../../src/domain/event'
-import {wsSpy, wsStream} from '../utils/ws-stream'
-import {knownEvents} from '../../src/domain/known-events'
-import {ExpressApp} from '../../src/delivery/express-app'
-import {RabbitSpy, rabbitSpy} from '../utils/amqp_stream'
-import {streamSpy} from '../utils/stream'
-import {Matches} from '../utils/matches'
+import Server, {ListenesMessages, ServerLike} from '../../../src/server'
+import {Logger} from '../../../src/logger'
+import {createPool} from '../../../src/infra/postgres-db'
+import {AMQP_ENV, PG_ENV} from '../../../src/env-vars'
+import {wsServerB} from '../../../src/infra/websocket/ws-server'
+import {AmqpProducer} from '../../../src/infra/amqp/producer'
+import {AmqpConsumer} from '../../../src/infra/amqp/consumer'
+import {DomainEvent, isDomainEvent, isHealthCheck} from '../../../src/domain/event'
+import {wsSpy, wsStream} from '../../utils/ws-stream'
+import {knownEvents} from '../../../src/domain/known-events'
+import {ExpressApp} from '../../../src/delivery/express-app'
+import {RabbitSpy, rabbitSpy} from '../../utils/amqp_stream'
+import {streamSpy} from '../../utils/stream'
+import {Matches} from '../../utils/matches'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -67,7 +67,8 @@ describe('Health Check of the system', () => {
     before(async () => {
         const producer = await AmqpProducer.of(amqpEnv, 'health-check:api').start(amqp)
         consumer = await AmqpConsumer.of(amqpEnv, 'health-check-test').start(amqp)
-        app = await new Server(logger, createPool(pgEnv), wsServerB(), producer, consumer, ExpressApp.app()).start(4001)
+        app = await new Server(logger, createPool(pgEnv), wsServerB(),
+            producer, consumer, producer, consumer, ExpressApp.app()).start(4001)
         // @ts-ignore for testing purposes;
         testSession = () => request(app.app)
         rabbitMqSpy = await rabbitSpy('health-check:api')

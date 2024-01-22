@@ -11,17 +11,16 @@ import {trackDomainMessage} from '../../../src/domain/tracked-message'
 
 const {expect} = chai
 
-
 describe('health check route', () => {
     it('Does broadcast message', () => {
-
         const routes: TestRoutes = ExpressApp.nullRoutes()
 
         const spiedBroadcast: DomainEvent[] = []
         const broadcast = WsServer.createNull(spiedBroadcast).broadcast
         const route = healthCheckRoute(routes)(broadcast,
             AmqpProducer.createNull(),
-            AmqpConsumer.createNull(() => trackDomainMessage(testDomainEventOf('foobar')))
+            AmqpConsumer.createNull(() => trackDomainMessage(testDomainEventOf('foobar'))),
+            AmqpProducer.createNull(),
         )
 
         const message = 'Message from Test!'
@@ -31,8 +30,31 @@ describe('health check route', () => {
             json: (/* _body*/) => {/**/
             },
         } as unknown as Response
-        route.run('POST', '/health/check')(req, res)
+        route.simulate('POST', '/health/check')(req, res)
 
-        expect(spiedBroadcast).to.eql([healthCheck(message)])
+        expect(spiedBroadcast).to.eql([{...healthCheck(message), ws: {status: 'connected'}}])
+    })
+
+    it('Does broadcast message, vol2', () => {
+        const routes: TestRoutes = ExpressApp.nullRoutes()
+
+        const spiedBroadcast: DomainEvent[] = []
+        const broadcast = WsServer.createNull(spiedBroadcast).broadcast
+        const route = healthCheckRoute(routes)(broadcast,
+            AmqpProducer.createNull(),
+            AmqpConsumer.createNull(() => trackDomainMessage(testDomainEventOf('foobar'))),
+            AmqpProducer.createNull(),
+        )
+
+        const message = 'Message from Test!'
+        const req = {body: {data: message}} as Request
+        const res = {
+            status: (/* _num: number*/) => res,
+            json: (/* _body*/) => {/**/
+            },
+        } as unknown as Response
+        route.simulate('POST', '/health/check')(req, res)
+
+        expect(spiedBroadcast).to.eql([{...healthCheck(message), ws: {status: 'connected'}}])
     })
 })

@@ -1,13 +1,13 @@
 import chai from 'chai'
 import chaiSubset from 'chai-subset'
 import request from 'supertest'
-import {knownEvents} from '../../src/domain/known-events'
-import {AmqpProducer} from '../../src/common/infra/amqp/producer'
-import {rabbitSpy, RabbitSpy} from '../utils/amqp_stream'
-import {AMQP_ENV, getVars} from '../../src/env-vars'
-import {Matches} from '../utils/matches'
-import {testDomainEventOf} from '../utils/test-domain-event'
-import {streamSpy} from '../utils/stream'
+import {knownEvents} from '../../../src/domain/known-events'
+import {AmqpProducer} from '../../../src/common/infra/amqp/producer'
+import {rabbitSpy, RabbitSpy} from '../../utils/amqp_stream'
+import {AMQP_ENV, getVars} from '../../../src/env-vars'
+import {Matches} from '../../utils/matches'
+import {testDomainEventOf} from '../../utils/test-domain-event'
+import {streamSpy} from '../../utils/stream'
 
 
 const {expect} = chai

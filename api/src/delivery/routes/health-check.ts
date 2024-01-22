@@ -34,12 +34,12 @@ const withValidRequest: (f: ReqResFn) => ReqResFn =
     }
 
 const healtCheckPost:
-    (a: Broadcast, b: SendsMessages, c: ListenesMessages) => ReqResFn =
-    (broadCast, producer, listener) => (req, res) => {
+    (a: Broadcast, b: SendsMessages, c: ListenesMessages, d: SendsMessages) => ReqResFn =
+    (broadCast, producer, listener, hcResponses) => (req, res) => {
         const message: unknown = req.body.data
         if (typeof message === 'string') {
             const healthCheckEvent: HealthCheck = healthCheck(message)
-            const trackedMessage:  TrackedMessage<DomainEvent> = trackDomainMessage(healthCheckEvent)
+            const trackedMessage: TrackedMessage<DomainEvent> = trackDomainMessage(healthCheckEvent)
             producer.send(trackedMessage)
 
             const healthCheckMessage = connectedToWS(healthCheckEvent.message)
@@ -47,14 +47,16 @@ const healtCheckPost:
             res.json({status: {websocket: {status: 'ok', connections: count}}})
 
             listener.onMessage((event) => {
-                if ( isTracked(isDomainEvent)(event)) {
-                    if (event.uuid === trackedMessage.uuid) {
-                        const domainMsg = event.data
-                        if (isHealthCheck(domainMsg)) {
-                            const e: HealthCheck = {...healthCheckMessage, amqp: {status: 'connected'}}
-                            broadCast(e)
-                        }
+                if (isTracked(isDomainEvent)(event)) {
+                    // if (event.uuid === trackedMessage.uuid) {
+                    const domainMsg = event.data
+                    if (isHealthCheck(domainMsg)) {
+                        const e: HealthCheck = {...healthCheckMessage, amqp: {status: 'connected'}}
+                        const msg: TrackedMessage<HealthCheck> = {uuid: trackedMessage.uuid, data: e}
+                        hcResponses.send(msg)
+                        // broadCast(e)
                     }
+                    // }
                 }
             })
             return
@@ -63,12 +65,13 @@ const healtCheckPost:
     }
 
 
-export type ProvidesRoutes<T extends Routes> = (bc: Broadcast, pr: SendsMessages, li: ListenesMessages) => T
+export type ProvidesRoutes<T extends Routes> =
+    (bc: Broadcast, pr: SendsMessages, li: ListenesMessages, hcResponses: SendsMessages) => T
 
 const r: <T extends Routes> (router: T) => ProvidesRoutes<T> =
-    <T extends Routes>(router: T) => (broadCast, producer, listener): T => {
+    <T extends Routes>(router: T) => (broadCast, producer, listener, hcResponses): T => {
         router.get('/hello/world', helloWorld)
-        router.post('/health/check', withValidRequest(healtCheckPost(broadCast, producer, listener)))
+        router.post('/health/check', withValidRequest(healtCheckPost(broadCast, producer, listener, hcResponses)))
         router.get('/health/check', healtCheck)
         return router
     }

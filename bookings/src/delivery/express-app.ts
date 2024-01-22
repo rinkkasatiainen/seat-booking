@@ -3,11 +3,12 @@ import EventEmitter from 'events'
 import * as http from 'http'
 import express, {Request, Response} from 'express'
 import {ApplicationRequestHandler} from 'express-serve-static-core'
-import {TrackedExpressAppEvent, ExpressEvents} from '../common/infra/express-app-events'
+import {ExpressAppEventTypes, ExpressEvents, TrackedExpressAppEvent} from '../common/infra/express-app-events'
 import {OutputTracker} from '../cross-cutting/output-tracker'
 import {CanTrackMessages, TracksMessages} from '../cross-cutting/tracks-requests'
 
-const noop = () => {/* noop*/}
+const noop = () => {/* noop*/
+}
 
 // Types to define what of 'Express' we are using
 export interface RequestWithValidData extends Request {
@@ -39,7 +40,7 @@ export interface TestRoutes extends Routes {
     run: (method: KEYS, url: string) => ReqResFn;
 }
 
-export class ExpressApp implements CanTrackMessages<ExpressEvents>{
+export class ExpressApp implements CanTrackMessages<ExpressEvents> {
     private readonly tracksMessages: TracksMessages<TrackedExpressAppEvent>
     private httpServer?: http.Server
 
@@ -86,16 +87,17 @@ export class ExpressApp implements CanTrackMessages<ExpressEvents>{
     }
 }
 
-export class FakeServer implements ExpressWrapper {
+export class FakeServer implements ExpressWrapper, CanTrackMessages<ExpressEvents> {
     private _routes?: Routes
+    private readonly tracksMessages: TracksMessages<TrackedExpressAppEvent>
 
     constructor() {
-        /* noop */
+        this.tracksMessages = new TracksMessages<TrackedExpressAppEvent>()
     }
 
     public listen(_port: number, callback: () => void): http.Server {
         callback()
-        return { close: noop } as http.Server
+        return {close: noop} as http.Server
     }
 
     // @ts-ignore TODO
@@ -106,15 +108,14 @@ export class FakeServer implements ExpressWrapper {
     public simulate(method: KEYS, path: string): Response {
         const r: StubbedRouter = this._routes as StubbedRouter
 
-        const req: Request = {body: {data: 'foo'}} as unknown as Request
+        const req: Request = {body: {}} as unknown as Request
         const res: Response = {
-            json: (d: unknown) => {
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                // @ts-ignore TODO
-                res.body = d
+            json: (data: unknown) => {
+                const event: TrackedExpressAppEvent = {type: 'respond', args: [method, path, data]}
+                this.tracksMessages.eventHappened(ExpressAppEventTypes.respond, event)
             },
         } as unknown as Response
-        // @ts-ignore TODO
+        // @ts-ignore TODO: AkS: Fix naming & visibility
         r._xxx.emit('request', method, path, req, res)
 
         return res
@@ -124,6 +125,10 @@ export class FakeServer implements ExpressWrapper {
         /* noop */
     }
 
+
+    public trackRequests(): OutputTracker<TrackedExpressAppEvent> {
+        return OutputTracker.create<TrackedExpressAppEvent>(this.tracksMessages, ExpressAppEventTypes.respond)
+    }
 }
 
 class CustomServer implements ExpressWrapper {
@@ -138,8 +143,7 @@ class CustomServer implements ExpressWrapper {
         (_path: string, router: StubbedRouter): Routes => {
             const handleRequestWrapper: (req: http.IncomingMessage, res: http.ServerResponse) => void = (req, res) => {
                 // @ts-ignore TODO
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-                router.registeredRoutes.GET[req.url](req, res)
+                router.registeredRoutes.GET[req.url](req, res) // eslint-disable-line @typescript-eslint/no-unsafe-call
             }
             this.server.on('request', handleRequestWrapper)
             const routes: StubbedRouter = new StubbedRouter()
@@ -170,17 +174,17 @@ export class StubbedRouter implements Routes {
         })
     }
 
-    public get(_url: string, callback: ReqResFn): void {
-        this.registeredRoutes.GET[_url] = callback
+    public get(path: string, callback: ReqResFn): void {
+        this.registeredRoutes.GET[path] = callback
+
     }
 
-    public post(_url: string, callback: ReqResFn): void {
-        this.registeredRoutes.POST[_url] = callback
+    public post(path: string, callback: ReqResFn): void {
+        this.registeredRoutes.POST[path] = callback
     }
 
     private getFn(type: KEYS, path: string): ReqResFn {
         const fn = this.registeredRoutes[type][path]
-        return fn ? fn : () => {/* noop */
-        }
+        return fn ? fn : noop
     }
 }

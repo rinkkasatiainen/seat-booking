@@ -2,7 +2,7 @@ import chai from 'chai'
 import chaiSubset from 'chai-subset'
 import {Server} from '../../../src/server'
 import {LogsData} from '../../../src/logger'
-import {ExpressApp} from '../../../src/delivery/express-app'
+import {ExpressApp, FakeServer} from '../../../src/delivery/express-app'
 import {ActsAsServer} from '../../../src/server/server'
 import {OutputTracker} from '../../../src/cross-cutting/output-tracker'
 import {AmqpConsumer, StubbedChannel} from '../../../src/common/infra/amqp/consumer'
@@ -11,6 +11,7 @@ import {amqpMessageOf} from '../../utils/amqp_stream'
 import {TrackedAmqpEvent} from '../../../src/common/infra/amqp-events'
 import {healthCheck} from '../../../src/domain/event'
 import {AmqpProducer, StubbedBroadcast} from '../../../src/common/infra/amqp/producer'
+import {TrackedExpressAppEvent} from '../../../src/common/infra/express-app-events'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -52,12 +53,36 @@ describe('Bookings server', () => {
             }],
         )
     })
-    describe('on running server', () => {
+
+    describe('listens to HTTP calls', () => {
+        let fakeRoute: FakeServer
+
         beforeEach(async () => {
-            server = await Server.of(logger, listener, producer, /* , listener, */routeApp).start(4011)
+            fakeRoute = new FakeServer()
+            routeApp = ExpressApp.createNull(fakeRoute)
+            server = await Server.of(logger, listener, producer, routeApp).start(4011)
         })
 
-        it('consumes messages from AMQP', () => {
+        it('responds with GET /health/check', () => {
+            const tracksMessages: OutputTracker<TrackedExpressAppEvent> = fakeRoute.trackRequests()
+
+            fakeRoute.simulate('GET' , '/health/check')
+            expect(tracksMessages.data()
+                .filter(it => it.type === 'respond')).to.eql(
+                [{
+                    type: 'respond',
+                    args: ['GET', '/health/check', {status: 'ok'}],
+                }],
+            )
+        })
+    })
+
+    describe('connects with AMQP', () => {
+        beforeEach(async () => {
+            server = await Server.of(logger, listener, producer, routeApp).start(4011)
+        })
+
+        it('consumes messages', () => {
             const tracksMessages: OutputTracker<TrackedAmqpEvent> = listener.trackRequests()
             listeningChannel.simulate(queueName, amqpMessageOf(testDomainEventOf('a test event')))
 
@@ -70,7 +95,7 @@ describe('Bookings server', () => {
             )
         })
 
-        it('sends health check message to producer as response.', () => {
+        it('Feat: sends health-check response', () => {
             const tracksMessages = prodChannel.trackRequests('health-check', 'responses')
             listeningChannel.simulate(queueName, amqpMessageOf(healthCheck('a test health check event')))
 

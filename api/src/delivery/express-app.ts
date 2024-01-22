@@ -21,7 +21,7 @@ export interface Route {
 type KEYS = 'POST' | 'GET'
 
 export interface TestRoutes extends Routes {
-    run: (method: KEYS, url: string) => ReqResFn;
+    simulate: (method: KEYS, url: string) => ReqResFn;
 }
 
 export class ExpressApp {
@@ -64,7 +64,7 @@ export class ExpressApp {
                 registeredRoutes.POST[url] = callback
             },
             // @ts-ignore used in testing - nullpointer clear in test
-            run: (method, url) => registeredRoutes[method][url],
+            simulate: (method, url) => registeredRoutes[method][url],
         }
     }
 }

@@ -42,7 +42,7 @@ export const rabbitSpy: (x: ExchangeName) => Promise<RabbitSpy> = async (topic) 
                 if (err) {
                     reject(err)
                 }
-                channel.assertQueue('testing-queue', {autoDelete: true}, (e, queue) => {
+                channel.assertQueue('api-testing-queue', {autoDelete: true}, (e, queue) => {
                     if (e) {
                         reject(e)
                     }
@@ -54,6 +54,7 @@ export const rabbitSpy: (x: ExchangeName) => Promise<RabbitSpy> = async (topic) 
 
                         channel.consume(queue.queue, (msg: Message | null) => {
                             if (msg) {
+                                channel.ackAll()
                                 const parsed: unknown = JSON.parse(msg.content.toString())
                                 if (isTracked(isDomainEvent)(parsed)) {
                                     elements.push(parsed.data)

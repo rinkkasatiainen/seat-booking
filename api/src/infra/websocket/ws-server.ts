@@ -58,6 +58,9 @@ export class WsServer implements ActsAsWebSocketServer {
                 console.log('did receive incoming message from WS.')
             })
             socket.send(JSON.stringify(connectedToWS('Hello from WebSocket!')))
+            // socket.on('close', () => {
+            //     console.log('Closing socket connection', _wsServer.clients.size)
+            // })
         })
 
         return new WsServer(_wsServer)

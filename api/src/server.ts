@@ -5,10 +5,10 @@ import {Router} from 'express'
 import {ActsAsPool} from './infra/postgres-db'
 import {Logger} from './logger'
 import {healthCheckRoute} from './delivery/routes/health-check'
-import {DomainEvent} from './domain/event'
+import {DomainEvent, HealthCheck, isDomainEvent, isHealthCheck} from './domain/event'
 import {ActsAsWebSocketServer} from './infra/websocket/ws-server'
 import {RouteApp} from './delivery/express-app'
-import {TrackedMessage} from './domain/tracked-message'
+import {isTracked, TrackedMessage} from './domain/tracked-message'
 
 export interface ServerLike {
     start: (port: number) => Promise<ServerLike>;
@@ -21,6 +21,7 @@ export interface SendsMessages {
 }
 
 export type ListenerCallback = (x: TrackedMessage<DomainEvent>) => void;
+
 export interface ListenesMessages {
     onMessage: (fn: ListenerCallback) => void;
     close: () => void;
@@ -37,6 +38,8 @@ export class Server implements ServerLike {
         private readonly wsServer: ActsAsWebSocketServer,
         private readonly producer: SendsMessages,
         private readonly listener: ListenesMessages,
+        private readonly healthCheckResponses: SendsMessages,
+        private readonly healthCheck: ListenesMessages,
         private readonly app: RouteApp
     ) {
         this.config()
@@ -53,7 +56,22 @@ export class Server implements ServerLike {
         await this.dbConnect(this.createPool)
 
         const broadcast: Broadcast = data => this.wsServer.broadcast(data)
-        this.app.use('/', healthCheckRoute<Router>(Router())(broadcast, this.producer, this.listener))
+        this.app.use('/', healthCheckRoute<Router>(Router())(
+            broadcast,
+            this.producer,
+            this.listener,
+            this.healthCheckResponses
+        ))
+
+        this.healthCheck.onMessage((event) => {
+            if (isTracked(isDomainEvent)(event)) {
+                const domainMsg = event.data
+                if (isHealthCheck(domainMsg)) {
+                    const e: HealthCheck = {...domainMsg, amqp: {status: 'connected'}}
+                    broadcast(e)
+                }
+            }
+        })
 
         return this
     }
@@ -91,12 +109,12 @@ export class Server implements ServerLike {
             .then(async (client) => {
                 await client.query('SELECT NOW()').then(rows => {
                     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                    const _rows: Array<{now: string}> = rows.rows as Array<{now: string}>
+                    const _rows: Array<{ now: string }> = rows.rows as Array<{ now: string }>
                     const result: { now: string } | undefined = _rows[0]
-                    if (result){
+                    if (result) {
                         this.logger.log(`Starting DB connection @: ${result.now}`)
                     } else {
-                        this.logger.error( new Error('Could not connect to DB'))
+                        this.logger.error(new Error('Could not connect to DB'))
                     }
                 })
                 client.release()
@@ -107,6 +125,6 @@ export class Server implements ServerLike {
     }
 }
 
-export type HttpServerAlias = Pick<http.Server, 'on'|'close'>
+export type HttpServerAlias = Pick<http.Server, 'on' | 'close'>
 
 export default Server

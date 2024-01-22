@@ -4,25 +4,32 @@ import {ExpressApp, FakeServer, StubbedRouter} from '../../../src/delivery/expre
 
 const {expect} = chai
 chai.use(chaiSubset)
+const noop = () => { /* noop*/
+}
 
 describe('Can Stub the ExpressApp', () => {
     it('can stub whole server', async () => {
         const fakeServer = new FakeServer()
+        const responseBody = {status: 'not-ok'}
 
         const stubbedRouter = new StubbedRouter()
-        stubbedRouter.get('/foo', (req, res) => {
-            res.json(req.body)
+        stubbedRouter.get('/foo', (_req, res) => {
+            res.json(responseBody)
         })
+
         const fakeApp: ExpressApp = ExpressApp.createNull(fakeServer)
         fakeApp.routeFor('/', () => stubbedRouter)
 
-        await fakeApp.listen(5002, () => {
-            // console.log('not important - not used!!')
-        })
+        await fakeApp.listen(5002, noop)
+        const outputTracker = fakeServer.trackRequests()
 
-        const response = fakeServer.simulate('GET', '/foo')
+        fakeServer.simulate('GET', '/foo')
 
-        // @ts-ignore just happens to have 'body'
-        expect(response.body).to.containSubset({data: 'foo'})
+        expect(outputTracker.data().filter(it => it.type === 'respond')).to.eql(
+            [{
+                args: ['GET', '/foo', {status: 'not-ok'}],
+                type: 'respond',
+            }]
+        )
     })
 })

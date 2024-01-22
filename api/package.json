@@ -27,7 +27,8 @@
     "lint:fix": "eslint --fix -- src test",
     "test": "NODE_ENV=test ts-mocha -p ./tsconfig.test.json test/**/*.test.ts",
     "test:unit": "NODE_ENV=test ts-mocha -p ./tsconfig.test.json test/unit/**/*.test.ts",
-    "test:component": "NODE_ENV=test ts-mocha -p ./tsconfig.test.json test/component/**/*.test.ts"
+    "test:component": "NODE_ENV=test ts-mocha -p ./tsconfig.test.json test/component/**/*.test.ts",
+    "test:deployment": "NODE_ENV=test ts-mocha -p ./tsconfig.test.json test/deployment/**/*.test.ts"
   },
   "devDependencies": {
     "@types/amqplib": "^0.10.4",

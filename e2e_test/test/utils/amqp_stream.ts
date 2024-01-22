@@ -41,7 +41,7 @@ export const rabbitSpy: (x: ExchangeName) => Promise<RabbitSpy> = async (topic) 
                 if (err) {
                     reject(err)
                 }
-                channel.assertQueue('testing-queue', {autoDelete: true}, (e, queue) => {
+                channel.assertQueue('e2e-testing-queue', {autoDelete: true}, (e, queue) => {
                     if (e) {
                         reject(e)
                     }
