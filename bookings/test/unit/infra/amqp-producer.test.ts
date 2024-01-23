@@ -5,6 +5,7 @@ import {OutputTracker} from '../../../src/cross-cutting/output-tracker'
 import {TrackedAmqpEvent} from '../../../src/common/infra/amqp-events'
 import {AmqpProducer, StubbedBroadcast} from '../../../src/common/infra/amqp/producer'
 import {StubbedConnection} from '../../../src/common/infra/amqp/consumer'
+import {trackDomainMessage} from '../../../src/domain/tracked-message'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -31,11 +32,11 @@ describe('Happens to Stub the AMQProducer', () => {
         const domainEvent = testDomainEventOf('foobar')
         tracksMessages = channel.trackRequests('health-check', 'responses')
 
-        producer.send(domainEvent)
+        producer.send(trackDomainMessage(domainEvent))
 
         // @ts-ignore if fails, fails test case, too.
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        const data = tracksMessages.data().map(it => JSON.parse(it.args))
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return,@typescript-eslint/no-unsafe-member-access
+        const data = tracksMessages.data().map(it => JSON.parse(it.args).data)
         expect(data).to.eql([{
             __type: 'HealthCheck',
             data: 'foobar',
@@ -53,7 +54,7 @@ describe('Happens to Stub the AMQProducer', () => {
 
         it('closes connection', () => {
 
-            const connection  = new StubbedConnection()
+            const connection = new StubbedConnection()
             const p = AmqpProducer.createNull({connection})
             tracksMessages = connection.trackRequests()
             p.close()

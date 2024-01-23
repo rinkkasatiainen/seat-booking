@@ -18,9 +18,10 @@ export interface HealthCheck extends KnownDomainEvent<'HealthCheck'> {
     amqp: { status: string };
     message: string;
 }
+const isObject = (x: unknown): x is { [key: string]: unknown } => typeof x === 'object' && x !== null
 
 export function isDomainEvent(x: unknown): x is DomainEvent {
-    return typeof x === 'object' && x !== null &&
+    return isObject(x) &&
         '__type' in x && typeof x.__type === 'string' &&
         x.__type in knownEvents
 }

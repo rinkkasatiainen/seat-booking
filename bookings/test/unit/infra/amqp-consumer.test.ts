@@ -6,11 +6,13 @@ import {testDomainEventOf} from '../../utils/test-domain-event'
 import {amqpMessageOf} from '../../utils/amqp_stream'
 import {OutputTracker} from '../../../src/cross-cutting/output-tracker'
 import {TrackedAmqpEvent} from '../../../src/common/infra/amqp-events'
+import {trackDomainMessage} from '../../../src/domain/tracked-message'
 
 const {expect} = chai
 chai.use(chaiSubset)
 
-const noop = (): void => { /* noop */}
+const noop = (): void => { /* noop */
+}
 
 describe('Happens to Stub the AMQPConsumer', () => {
 
@@ -30,7 +32,7 @@ describe('Happens to Stub the AMQPConsumer', () => {
 
 
     it('can consume a domain event', (done) => {
-        const domainEvent = testDomainEventOf('foobar')
+        const domainEvent = trackDomainMessage(testDomainEventOf('foobar'))
 
         consumer.onMessage(event => {
             expect(event).to.eql({...domainEvent})
@@ -59,12 +61,13 @@ describe('Happens to Stub the AMQPConsumer', () => {
         const tracksMessages: OutputTracker<TrackedAmqpEvent> = consumer.trackRequests()
         consumer.onMessage(noop) // This opens listening to the queue.
 
-        channel.simulate(queueName, amqpMessageOf(testDomainEventOf('a test event')))
+        const trackedMessage = trackDomainMessage(testDomainEventOf('a test event'))
+        channel.simulate(queueName, amqpMessageOf(trackedMessage))
 
         expect(tracksMessages.data()).to.eql(
             [{
                 type: 'listen',
-                args: [{ msg: testDomainEventOf('a test event')}],
+                args: [{msg: trackedMessage}],
             }],
         )
     })

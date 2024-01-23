@@ -75,7 +75,7 @@ describe('deployment', () => {
             .matching(Matches.toSubset({
                 ws: {status: 'connected'},
                 amqp: {status: 'connected'},
-                bookings: {status: 'connected'}
+                bookings: {status: 'ok'}
             }))
 
         await rq.post('/health/check')

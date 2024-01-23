@@ -1,13 +1,12 @@
 import chai from 'chai'
 import chaiSubset from 'chai-subset'
-import Server, {SendsMessages, ListenesMessages} from '../../../src/server'
+import Server, {ListenesMessages} from '../../../src/server'
 import {LogData, Logger, LogsData} from '../../../src/logger'
 import {ActsAsPool, PgPool} from '../../../src/infra/postgres-db'
 import {ActsAsWebSocketServer, WsServer} from '../../../src/infra/websocket/ws-server'
-import {AmqpProducer} from '../../../src/infra/amqp/producer'
-import {AmqpConsumer} from '../../../src/infra/amqp/consumer'
-import {DomainEvent} from '../../../src/domain/event'
 import {ExpressApp, RouteApp} from '../../../src/delivery/express-app'
+import {AmqpProducer} from '../../../src/common/infra/amqp/producer'
+import {AmqpConsumer} from '../../../src/common/infra/amqp/consumer'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -16,23 +15,21 @@ describe('Server startup', () => {
     let server: Server |undefined
     let data: LogData
     let fakeWsServer: ActsAsWebSocketServer
-    let producer: SendsMessages
+    let producer: AmqpProducer
     let listener: ListenesMessages
     let providesExpress: RouteApp
     let logger: Logger
     let pool: ActsAsPool
-    let spiesMessages: DomainEvent[]
     after( async () => {
         await server?.close()
     })
 
-    beforeEach( () => {
+    beforeEach( async () => {
         data = {error: [], log: []}
         logger = LogsData.createNull(data)
         fakeWsServer = WsServer.createNull()
-        spiesMessages = []
-        producer = AmqpProducer.createNull(spiesMessages)
-        listener = AmqpConsumer.createNull()
+        producer = AmqpProducer.createNull({})
+        listener = await AmqpConsumer.createNull()
         providesExpress = ExpressApp.createNull()
         pool = PgPool.createNull()
     })

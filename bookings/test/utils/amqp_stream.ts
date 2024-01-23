@@ -5,13 +5,14 @@ import {MessageProperties} from 'amqplib'
 import {AMQP_ENV, getVars} from '../../src/env-vars'
 import {DomainEvent, isDomainEvent} from '../../src/domain/event'
 import {createAmqpUrl, ExchangeName, parseExchangeName} from '../../src/common/infra/amqp/url'
+import {isTracked, TrackedMessage} from '../../src/domain/tracked-message'
 import {noop, SpiesStuff} from './stream'
 
 /* eslint-disable no-console */
 
 export type RabbitSpy = SpiesStuff & CanBeClosed
 
-export const amqpMessageOf = (domainEvent: DomainEvent): Message => ({
+export const amqpMessageOf = (domainEvent: TrackedMessage<DomainEvent>): Message => ({
     content: Buffer.from(JSON.stringify(domainEvent), 'utf-8'),
     fields: {deliveryTag: 1, redelivered: false, exchange: 'any', routingKey: 'rt'},
     properties: {} as MessageProperties,
@@ -51,11 +52,15 @@ export const rabbitSpy: (x: ExchangeName) => Promise<RabbitSpy> = async (topic) 
                             reject(errBind)
                         }
 
+                        console.log('bindQueue', queue.queue, t.exchangeName, t.routingKey)
+
                         channel.consume(queue.queue, (msg: Message | null) => {
                             if (msg) {
                                 const parsed: unknown = JSON.parse(msg.content.toString())
-                                if (isDomainEvent(parsed)) {
-                                    elements.push(parsed)
+                                console.log('consume-messgage', queue.queue, parsed)
+                                if (isTracked(isDomainEvent)(parsed)) {
+                                    console.log('found message', queue.queue, parsed)
+                                    elements.push(parsed.data)
                                 }
                             }
                         })

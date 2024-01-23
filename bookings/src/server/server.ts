@@ -1,7 +1,8 @@
-import {DomainEvent, isDomainEvent, isHealthCheck} from '../domain/event'
+import {DomainEvent, isHealthCheck} from '../domain/event'
 import {ExpressApp} from '../delivery/express-app'
 import {LogsData} from '../logger'
 import {healthCheckRoute} from '../delivery/routes/health-check'
+import {TrackedMessage} from '../domain/tracked-message'
 
 
 export interface ActsAsServer {
@@ -11,11 +12,11 @@ export interface ActsAsServer {
 }
 
 export interface SendsMessages {
-    send: (msg: DomainEvent) => void;
+    send: (msg: TrackedMessage<DomainEvent>) => void;
     close: () => void;
 }
 
-export type ListenerCallback = (x: DomainEvent) => void;
+export type ListenerCallback = (x: TrackedMessage<DomainEvent>) => void;
 
 export interface ListenesMessages {
     onMessage: (fn: ListenerCallback) => void;
@@ -36,15 +37,14 @@ export class Server implements ActsAsServer {
         await this.routeApp.listen(port, () => {
             this.logger.info(`Listening on port ${port}`)
         })
-        this.listener.onMessage( (event) => {
-            if (isDomainEvent(event)) {
-                if(isHealthCheck(event)){
-                    const newEvent = {...event, amqp: {status: 'connected'}}
-                    this.producer.send(newEvent)
-                }
+        this.listener.onMessage((event) => {
+            const domainEvent = event.data
+            if (isHealthCheck(domainEvent)) {
+                const newEvent = {...domainEvent, bookings: {status: 'ok', amqp: {status: 'connected'}}}
+                this.producer.send({uuid: event.uuid, data: newEvent})
             }
         })
-        this.routeApp.routeFor('/', healthCheckRoute() )
+        this.routeApp.routeFor('/', healthCheckRoute())
         return this
     }
 

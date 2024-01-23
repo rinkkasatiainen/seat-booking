@@ -7,6 +7,7 @@ import {broadcastEvent, errorEvent, generalEvent, TrackedAmqpEvent} from '../amq
 import {DomainEvent} from '../../../domain/event'
 import {TracksMessages} from '../../../cross-cutting/tracks-requests'
 import {AMQP_ENV} from '../../../env-vars'
+import {TrackedMessage} from '../../../domain/tracked-message'
 import {ConnectionLike, StubbedConnection} from './consumer'
 import {createAmqpUrl, ExchangeName, parseExchangeName, XcTopic} from './url'
 import {createChannel} from './queue-handling'
@@ -31,7 +32,22 @@ export interface BroadcastChannel {
 
 type NullArgs = Partial<{ channel: BroadcastChannel; connection: ConnectionLike }>;
 
-export class AmqpProducer implements SendsMessages {
+class SendsToChannel implements SendsMessages {
+    constructor(private readonly channel: BroadcastChannel, private readonly topic: XcTopic) {
+    }
+
+    public send(msg: TrackedMessage<DomainEvent>): void {
+        this.channel.publish(this.topic.exchangeName, this.topic.routingKey, Buffer.from(JSON.stringify(msg)))
+    }
+
+    public close(): void {
+        this.channel.close(err => {
+            console.error('Error', err) // eslint-disable-line no-console
+        })
+    }
+}
+
+export class AmqpProducer {
     private tracksMessages: TracksMessages<TrackedAmqpEvent>
     private readonly _event = 'BROADCAST'
 
@@ -49,8 +65,11 @@ export class AmqpProducer implements SendsMessages {
         this.connection.close()
     }
 
+    public to(topic: XcTopic): SendsMessages {
+        return new SendsToChannel(this.channel, topic)
+    }
 
-    public send(msg: DomainEvent): void {
+    public send(msg: TrackedMessage<DomainEvent>): void {
         this.tracksMessages.eventHappened('broadcast', broadcastEvent([msg]))
         this.channel.publish(this.topic.exchangeName, this.topic.routingKey, Buffer.from(JSON.stringify(msg)))
 

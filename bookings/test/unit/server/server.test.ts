@@ -12,6 +12,7 @@ import {TrackedAmqpEvent} from '../../../src/common/infra/amqp-events'
 import {healthCheck} from '../../../src/domain/event'
 import {AmqpProducer, StubbedBroadcast} from '../../../src/common/infra/amqp/producer'
 import {TrackedExpressAppEvent} from '../../../src/common/infra/express-app-events'
+import {trackDomainMessage} from '../../../src/domain/tracked-message'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -66,7 +67,7 @@ describe('Bookings server', () => {
         it('responds with GET /health/check', () => {
             const tracksMessages: OutputTracker<TrackedExpressAppEvent> = fakeRoute.trackRequests()
 
-            fakeRoute.simulate('GET' , '/health/check')
+            fakeRoute.simulate('GET', '/health/check')
             expect(tracksMessages.data()
                 .filter(it => it.type === 'respond')).to.eql(
                 [{
@@ -84,25 +85,29 @@ describe('Bookings server', () => {
 
         it('consumes messages', () => {
             const tracksMessages: OutputTracker<TrackedAmqpEvent> = listener.trackRequests()
-            listeningChannel.simulate(queueName, amqpMessageOf(testDomainEventOf('a test event')))
+            const trackedMessage = trackDomainMessage(testDomainEventOf('a test event'))
+            listeningChannel.simulate(queueName, amqpMessageOf(trackedMessage))
 
             expect(tracksMessages.data()
                 .filter(it => it.type === 'listen')).to.eql(
                 [{
                     type: 'listen',
-                    args: [{msg: testDomainEventOf('a test event')}],
+                    args: [{msg: trackedMessage}],
                 }],
             )
         })
 
         it('Feat: sends health-check response', () => {
             const tracksMessages = prodChannel.trackRequests('health-check', 'responses')
-            listeningChannel.simulate(queueName, amqpMessageOf(healthCheck('a test health check event')))
+            listeningChannel.simulate(
+                queueName,
+                amqpMessageOf(trackDomainMessage(healthCheck('a test health check event')))
+            )
 
             const events: unknown = tracksMessages.data()
                 .filter(it => it.type === 'broadcast')
                 // @ts-ignore fails as part of test, if not ok
-                .map(it => JSON.parse(it.args))[0] // eslint-disable-line @typescript-eslint/no-unsafe-return
+                .map(it => JSON.parse(it.args).data)[0] // eslint-disable-line
 
             expect(events).to.containSubset(
                 {__type: 'HealthCheck', message: 'a test health check event'},

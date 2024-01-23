@@ -6,6 +6,7 @@ import {Matches} from '../../utils/matches'
 import {streamSpy, StreamSpy} from '../../utils/stream'
 import {knownEvents} from '../../../src/domain/known-events'
 import {trackDomainMessage} from '../../../src/domain/tracked-message'
+import {SendsMessages} from '../../../src/server'
 
 describe('AMQP Producer', () => {
     let spy: RabbitSpy
@@ -13,7 +14,7 @@ describe('AMQP Producer', () => {
     const envVars: AMQP_ENV = getVars() as AMQP_ENV
 
     beforeEach(async () => {
-        spy = await rabbitSpy('health-check:responses')
+        spy = await rabbitSpy('health-check:api')
         stream = streamSpy(spy)
     })
 
@@ -21,13 +22,13 @@ describe('AMQP Producer', () => {
         spy.close()
     })
 
-    it('does reply with health-check:response', async () => {
+    it('does send a message', async () => {
         stream = stream.ofType(knownEvents.HealthCheck)
             .withPayload('data').log()
             .matching(Matches.toSubset({data: 'Sending to RabbitMQ'}))
 
         // const producer = await createMQProducer2(envVars, 'amq.topic')
-        const producer = await AmqpProducer.of(envVars, 'health-check:bookings')
+        const producer: SendsMessages = await AmqpProducer.of(envVars, 'health-check:api')
 
         producer.send(trackDomainMessage(testDomainEventOf('Sending to RabbitMQ')))
 

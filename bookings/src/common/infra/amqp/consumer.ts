@@ -1,11 +1,12 @@
 // eslint-disable-next-line max-classes-per-file
 import amqp, {Channel, Connection, Message} from 'amqplib/callback_api'
 import {AMQP_ENV} from '../../../env-vars'
-import {ListenesMessages, ListenerCallback} from '../../../server'
+import {ListenerCallback, ListenesMessages} from '../../../server'
 import {isDomainEvent} from '../../../domain/event'
 import {CanTrackMessages, TracksMessages} from '../../../cross-cutting/tracks-requests'
 import {AmqpEvents, generalEvent, TrackedAmqpEvent} from '../amqp-events'
 import {OutputTracker} from '../../../cross-cutting/output-tracker'
+import {isTracked} from '../../../domain/tracked-message'
 import {createAmqpUrl} from './url'
 
 import {assertQueue, bindQueue, createChannel} from './queue-handling'
@@ -50,8 +51,7 @@ export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEven
                 this.channel.ack(msg)
                 const parsed: unknown = JSON.parse(msg.content.toString())
                 this.tracksMessages.eventHappened(AmqpConsumer.EVENT_NAME, {type: 'listen', args: [{msg: parsed}]})
-                // this should be isTrackedEvent!!!
-                if (isDomainEvent(parsed)) {
+                if (isTracked(isDomainEvent)(parsed)) {
                     fn(parsed)
                 }
             }

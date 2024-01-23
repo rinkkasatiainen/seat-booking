@@ -9,6 +9,7 @@ import {DomainEvent, HealthCheck, isDomainEvent, isHealthCheck} from './domain/e
 import {ActsAsWebSocketServer} from './infra/websocket/ws-server'
 import {RouteApp} from './delivery/express-app'
 import {isTracked, TrackedMessage} from './domain/tracked-message'
+import {AmqpProducer} from './common/infra/amqp/producer'
 
 export interface ServerLike {
     start: (port: number) => Promise<ServerLike>;
@@ -36,7 +37,7 @@ export class Server implements ServerLike {
         private readonly logger: Logger,
         private readonly createPool: ActsAsPool,
         private readonly wsServer: ActsAsWebSocketServer,
-        private readonly producer: SendsMessages,
+        private readonly producer: AmqpProducer,
         private readonly listener: ListenesMessages,
         private readonly healthCheckResponses: SendsMessages,
         private readonly healthCheck: ListenesMessages,

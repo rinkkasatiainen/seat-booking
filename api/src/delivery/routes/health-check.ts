@@ -2,6 +2,8 @@ import {Broadcast, ListenesMessages, SendsMessages} from '../../server'
 import {connectedToWS, DomainEvent, healthCheck, HealthCheck, isDomainEvent, isHealthCheck} from '../../domain/event'
 import {ReqResFn, RequestWithValidData, Routes} from '../express-app'
 import {isTracked, trackDomainMessage, TrackedMessage} from '../../domain/tracked-message'
+import {AmqpProducer} from '../../common/infra/amqp/producer'
+import {parseExchangeName} from '../../common/infra/amqp/url'
 
 const helloWorld: ReqResFn =
     (_, res) => {
@@ -34,8 +36,8 @@ const withValidRequest: (f: ReqResFn) => ReqResFn =
     }
 
 const healtCheckPost:
-    (a: Broadcast, b: SendsMessages, c: ListenesMessages, d: SendsMessages) => ReqResFn =
-    (broadCast, producer, listener, hcResponses) => (req, res) => {
+    (a: Broadcast, b: AmqpProducer, c: ListenesMessages, d: SendsMessages) => ReqResFn =
+    (broadCast, producer: AmqpProducer, listener, hcResponses) => (req, res) => {
         const message: unknown = req.body.data
         if (typeof message === 'string') {
             const healthCheckEvent: HealthCheck = healthCheck(message)
@@ -54,6 +56,7 @@ const healtCheckPost:
                         const e: HealthCheck = {...healthCheckMessage, amqp: {status: 'connected'}}
                         const msg: TrackedMessage<HealthCheck> = {uuid: trackedMessage.uuid, data: e}
                         hcResponses.send(msg)
+                        producer.to(parseExchangeName('health-check:bookings')).send(msg)
                         // broadCast(e)
                     }
                     // }
@@ -66,7 +69,7 @@ const healtCheckPost:
 
 
 export type ProvidesRoutes<T extends Routes> =
-    (bc: Broadcast, pr: SendsMessages, li: ListenesMessages, hcResponses: SendsMessages) => T
+    (bc: Broadcast, pr: AmqpProducer, li: ListenesMessages, hcResponses: SendsMessages) => T
 
 const r: <T extends Routes> (router: T) => ProvidesRoutes<T> =
     <T extends Routes>(router: T) => (broadCast, producer, listener, hcResponses): T => {

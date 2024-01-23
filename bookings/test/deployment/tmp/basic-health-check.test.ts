@@ -8,6 +8,7 @@ import {AMQP_ENV, getVars} from '../../../src/env-vars'
 import {Matches} from '../../utils/matches'
 import {testDomainEventOf} from '../../utils/test-domain-event'
 import {streamSpy} from '../../utils/stream'
+import {trackDomainMessage} from '../../../src/domain/tracked-message'
 
 
 const {expect} = chai
@@ -54,12 +55,14 @@ describe('deployment', () => {
             let stream = streamSpy(spy)
             stream = stream.ofType(knownEvents.HealthCheck)
                 .withPayload('data')
-                .matching(Matches.toSubset({data: 'Sending to RabbitMQ', amqp: {status: 'connected'}}))
+                .matching(Matches.toSubset(
+                    {data: 'Sending to RabbitMQ', bookings: {status: 'ok', amqp: {status: 'connected'}}}
+                ))
                 .log()
 
             const producer = await AmqpProducer.of(envVars, 'health-check:bookings')
 
-            producer.send(testDomainEventOf('Sending to RabbitMQ'))
+            producer.send(trackDomainMessage(testDomainEventOf('Sending to RabbitMQ')))
 
             try {
                 (await stream.waitUntilFound(5))
