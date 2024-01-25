@@ -318,7 +318,7 @@
       ],
       "excludedFiles": [
         "**/*.test.ts",
-        "**/*.spec.ts"
+        "**/*.spec.ts",
       ],
       "rules": {
         "prefer-arrow-callback": "off"

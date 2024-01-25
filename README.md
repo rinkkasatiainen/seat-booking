@@ -2,6 +2,19 @@
 
 This is an app for learning purposes. 
 
+Add some description on what this does. Why is this even here.
+
+
+## Architecture
+
+Describe a few words about the architecture. What are the learning goals of each part
+
+
+## Testing
+
+Describe a few things about testing. 
+
+# Running this app locally
 
 # Running on docker
 
@@ -27,6 +40,8 @@ Make rabbitMQ queues for
  - [ ] health-check-responses  - health check responses on this queue
  - [ ] health-check-api   - querying health check for api
  - [ ] health-check-booking   - querying health check for bookings
+
+
 
 
 ## Running with hot reaload
