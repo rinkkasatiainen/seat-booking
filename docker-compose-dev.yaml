@@ -10,6 +10,10 @@ services:
       target: DEV
     environment:
       - API_PG_PWD=pass1
+      - DOCKER_AMQP_HOST=rabbit-dev:5672
+      - DOCKER_AMQP_VHOST=dev
+      - DOCKER_AMQP_USERNAME=guest
+      - DOCKER_AMQP_PWD=guest
 
   bookings:
     extends:
@@ -21,6 +25,11 @@ services:
       target: DEV
     environment:
       - BOOKINGS_PG_PWD=pass1
+      - DOCKER_AMQP_HOST=rabbit-dev:5672
+      - DOCKER_AMQP_VHOST=dev
+      - DOCKER_AMQP_USERNAME=guest
+      - DOCKER_AMQP_PWD=guest
+
 
   postgres:
     extends:

@@ -30,7 +30,7 @@ export function isHealthCheck(x: DomainEvent): x is HealthCheck {
     return isDomainEvent(x) && x.__type === knownEvents.HealthCheck
 }
 
-export const healthCheck: (msg: string) => HealthCheck = message => ({
+export const healthCheckEventOf: (msg: string) => HealthCheck = message => ({
     __type: 'HealthCheck',
     ws: {status: 'unknown'},
     amqp: {status: 'unknown'},

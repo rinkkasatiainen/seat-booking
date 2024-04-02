@@ -1,0 +1,168 @@
+{
+  "rabbit_version": "3.13.1",
+  "rabbitmq_version": "3.13.1",
+  "product_name": "RabbitMQ",
+  "product_version": "3.8.9",
+  "users": [
+    {
+      "name": "rabbitmq",
+      "password_hash": "AODy4/o2uZLEVdKm/ebXnhrIbMi2cIMoRTuyrloDRLvCrP/m",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": [],
+      "limits": {}
+    },
+    {
+      "name": "guest",
+      "password_hash": "X1/zPzTLFnic7mJBdmRz2vUv2FbfDRtAARJpF7eXvklLgKTt",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": [
+        "administrator"
+      ],
+      "limits": {}
+    }
+  ],
+  "vhosts": [
+    {
+      "name": "test-queue"
+    },
+    {
+      "name": "dev"
+    }
+  ],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "dev",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },    {
+      "user": "rabbitmq",
+      "vhost": "dev",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    },
+    {
+      "user": "rabbitmq",
+      "vhost": "test-queue",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "topic_permissions": [
+
+  ],
+  "parameters": [
+
+  ],
+  "global_parameters": [
+    {
+      "name": "cluster_name",
+      "value": "rabbit@a8d5c6e08439"
+    },
+    {
+      "name": "internal_cluster_id",
+      "value": "rabbitmq-cluster-id-gXeBLbsUC2W2tU0Bx_QY_w"
+    }
+  ],
+  "policies": [
+
+  ],
+  "queues": [
+    {
+      "name": "health-check-responses",
+      "vhost": "test-queue",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "health-check-api",
+      "vhost": "dev",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
+    },
+    {
+      "name": "health-check-bookings",
+      "vhost": "dev",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
+    }, {
+      "name": "health-check-responses",
+      "vhost": "dev",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-queue-type": "classic"
+      }
+    }
+  ],
+  "exchanges": [
+    {
+      "name": "health-check",
+      "vhost": "dev",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    },
+    {
+      "name": "health-check",
+      "vhost": "test-queue",
+      "type": "topic",
+      "durable": true,
+      "auto_delete": false,
+      "internal": false,
+      "arguments": {}
+    }
+  ],
+  "bindings": [
+    {
+      "source": "health-check",
+      "vhost": "dev",
+      "destination": "health-check-api",
+      "destination_type": "queue",
+      "routing_key": "api",
+      "arguments": {
+      }
+    },
+    {
+      "source": "health-check",
+      "vhost": "dev",
+      "destination": "health-check-bookings",
+      "destination_type": "queue",
+      "routing_key": "bookings",
+      "arguments": {
+      }
+    },
+    {
+      "source": "health-check",
+      "vhost": "dev",
+      "destination": "health-check-responses",
+      "destination_type": "queue",
+      "routing_key": "responses",
+      "arguments": {
+      }
+    },
+    {
+      "source": "health-check",
+      "vhost": "test-queue",
+      "destination": "health-check-responses",
+      "destination_type": "queue",
+      "routing_key": "responses",
+      "arguments": {
+      }
+    }
+  ]
+}

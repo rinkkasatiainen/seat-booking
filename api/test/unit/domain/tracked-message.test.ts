@@ -1,11 +1,11 @@
 import {expect} from 'chai'
 import {v4} from 'uuid'
-import {DomainEvent, HealthCheck, healthCheck, isDomainEvent} from '../../../src/domain/event'
+import {DomainEvent, HealthCheck, healthCheckEventOf, isDomainEvent} from '../../../src/domain/event'
 import {isTracked, trackDomainMessage, TrackedMessage} from '../../../src/domain/tracked-message'
 
 describe('Tracked Messages', () => {
 
-    const healthCheckEvent = healthCheck('of any')
+    const healthCheckEvent = healthCheckEventOf('of any')
     describe('requires only uuid and data', () => {
         const event: TrackedMessage<unknown> = {uuid: v4(), data: 'anything'} as unknown as TrackedMessage<HealthCheck>
         const returnsFalse = (_x: unknown): _x is DomainEvent => false

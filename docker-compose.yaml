@@ -9,8 +9,10 @@ services:
       - API_PG_PWD=password!
       - DB_URL=postgresql+asyncpg://apiUser:password1@postgres/api-dev
     depends_on:
-      - postgres
-      - rabbit-dev
+      postgres:
+        condition: service_healthy
+      rabbit-dev:
+        condition: service_healthy
     volumes:
       - ./api/dist/src:/workspace/dist/src
       - ./api/src:/workspace/src
@@ -26,8 +28,10 @@ services:
     environment:
       - BOOKINGS_PG_PWD=pass1
     depends_on:
-      - postgres
-      - rabbit-dev
+      postgres:
+        condition: service_healthy
+      rabbit-dev:
+        condition: service_healthy
     volumes:
       - ./bookings/dist/src:/workspace/dist/src
       - ./bookings/src:/workspace/src
@@ -48,16 +52,43 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: password
-      POSTGRES_USER: postgres
+      POSTGRES_USER: root
+    healthcheck:
+      test: /usr/bin/pg_isready
+      interval: 5s
+      timeout: 10s
+      retries: 120
+
+#  rabbit-dev:
+#    image: rabbitmq:3-management
+#    hostname: rabbit-dev
+#    environment:
+#      - RABBITMQ_DEFAULT_VHOST=api
+#      - RABBITMQ_ERLANG_COOKIE=i-m-very-secret
+#      - RABBITMQ_DEFAULT_USER user
+#      - RABBITMQ_DEFAULT_PASS pass
+#      - RABBITMQ_USER user
+#      - RABBITMQ_PASS pass
+#    ports:
+#      - 8881:15672 # Admin UI of rabbitmq-1
+#      - 5672:5672 # rabbitmq-1 for local development
+#    healthcheck:
+#      test: rabbitmq-diagnostics -q check_port_connectivity
 
   rabbit-dev:
-    image: rabbitmq:3-management
+#    image: rabbitmq:3-management
+    build:
+      context: ./ext_containers/amqp
+      dockerfile: Dockerfile
+    container_name: rabbit-dev
+#    networks:
+#      - messaging
     hostname: rabbit-dev
     environment:
       - RABBITMQ_DEFAULT_VHOST=api
       - RABBITMQ_ERLANG_COOKIE=i-m-very-secret
-      - RABBITMQ_DEFAULT_USER user
-      - RABBITMQ_DEFAULT_PASS pass
+      - RABBITMQ_DEFAULT_USER guest
+      - RABBITMQ_DEFAULT_PASS guest
       - RABBITMQ_USER user
       - RABBITMQ_PASS pass
     ports:

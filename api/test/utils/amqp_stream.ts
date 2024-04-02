@@ -36,6 +36,7 @@ export const rabbitSpy: (x: ExchangeName) => Promise<RabbitSpy> = async (topic) 
         amqp.connect(url, (errConn, conn) => {
             if (errConn) {
                 reject(errConn)
+                return
             }
 
             conn.createChannel((err, channel) => {

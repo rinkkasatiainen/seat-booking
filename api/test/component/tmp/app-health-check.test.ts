@@ -7,7 +7,7 @@ import WebSocket from 'ws'
 import Server, {ListenesMessages, ServerLike} from '../../../src/server'
 import {Logger} from '../../../src/logger'
 import {createPool} from '../../../src/infra/postgres-db'
-import {AMQP_ENV, PG_ENV} from '../../../src/env-vars'
+import {AMQP_ENV, getVars, PG_ENV} from '../../../src/env-vars'
 import {wsServerB} from '../../../src/infra/websocket/ws-server'
 import {DomainEvent, isDomainEvent, isHealthCheck} from '../../../src/domain/event'
 import {websocket, streamOf} from '../../utils/ws-stream'
@@ -31,9 +31,7 @@ const pgEnv: PG_ENV = {
     PG_HOST: 'postgres', PG_PASSWORD: 'pass1', PG_PORT: '5432', PG_USERNAME: 'user1',
 }
 
-const amqpEnv: AMQP_ENV = {
-    AMQP_HOST: 'localhost:5672', AMQP_PASSWORD: 'guest', AMQP_USERNAME: 'guest', AMQP_VHOST: 'api',
-}
+const envVars: AMQP_ENV = getVars() as AMQP_ENV
 
 const timer = (ms: number) => new Promise(res => setTimeout(res, ms))
 
@@ -64,8 +62,8 @@ describe('Health Check of the system', () => {
     let rabbitMqSpy: RabbitSpy
 
     before(async () => {
-        const producer = await AmqpProducer.of(amqpEnv, 'health-check:api')
-        consumer = await AmqpConsumer.of(amqpEnv, 'health-check-test')
+        const producer = await AmqpProducer.of(envVars, 'health-check:api')
+        consumer = await AmqpConsumer.of(envVars, 'health-check-test')
         app = await new Server(logger, createPool(pgEnv), wsServerB(),
             producer, consumer, producer, consumer, ExpressApp.app()).start(4001)
         // @ts-ignore for testing purposes;

@@ -6,10 +6,10 @@ import {knownEvents} from '../../../src/domain/known-events'
 import {Matches} from '../../utils/matches'
 import {createStreamSpy} from '../../utils/stream'
 import {rabbitSpy} from '../../utils/amqp_stream'
-import {AmqpProducer} from "../../../src/common/infra/amqp/producer";
-import {trackDomainMessage} from "../../../src/domain/tracked-message";
-import {customTestDomainEvent, testDomainEventOf} from "../../unit/test-domain-event";
-import {AMQP_ENV, getVars} from "../../../src/env-vars";
+import {AmqpProducer} from '../../../src/common/infra/amqp/producer'
+import {trackDomainMessage} from '../../../src/domain/tracked-message'
+import {customTestDomainEvent} from '../../unit/test-domain-event'
+import {AMQP_ENV, getVars} from '../../../src/env-vars'
 
 const {expect} = chai
 chai.use(chaiSubset)
@@ -31,7 +31,7 @@ describe('deployment', () => {
             .expect(200)
             .expect((res => {
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                expect(res.body.status).to.eql('ok')
+                expect(res.body.status).to.equal('ok')
             }))
     })
 
@@ -60,11 +60,11 @@ describe('deployment', () => {
 
     describe('listens to health-check:responses', () => {
         const envVars: AMQP_ENV = getVars() as AMQP_ENV
-        let producer: AmqpProducer;
-        beforeEach( async () => {
-            producer = await AmqpProducer.of(envVars, 'health-check:responses');
+        let producer: AmqpProducer
+        beforeEach(async () => {
+            producer = await AmqpProducer.of(envVars, 'health-check:responses')
         })
-        afterEach( () => {
+        afterEach(() => {
             producer.close()
         })
 
@@ -77,7 +77,7 @@ describe('deployment', () => {
 
             await stream.waitUntilFound(5)
         }).timeout(10000)
-    });
+    })
 
 
     describe('POST sends health check info on WS', () => {

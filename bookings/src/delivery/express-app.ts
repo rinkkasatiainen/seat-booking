@@ -49,13 +49,11 @@ export class ExpressApp implements CanTrackMessages<ExpressEvents> {
     }
 
     public routeFor(s: string, callback: (x: Routes) => Routes): void {
-        // @ts-ignore TODO
-        this._express.use(s, callback(this._routes))
-
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+        this._express.use(s, callback(this._routes) as unknown as any)
     }
 
     public listen(port: number, callback: () => void): Promise<ExpressApp> {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
         return new Promise(res => {
             this.httpServer = this._express.listen(port, () => {
                 callback()
@@ -70,7 +68,6 @@ export class ExpressApp implements CanTrackMessages<ExpressEvents> {
     }
 
     public close(): void {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-member-access
         this.httpServer?.close()
     }
 

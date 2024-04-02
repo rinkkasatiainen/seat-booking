@@ -1,5 +1,12 @@
 import {Broadcast, ListenesMessages, SendsMessages} from '../../server'
-import {connectedToWS, DomainEvent, healthCheck, HealthCheck, isDomainEvent, isHealthCheck} from '../../domain/event'
+import {
+    connectedToWS,
+    DomainEvent,
+    healthCheckEventOf,
+    HealthCheck,
+    isDomainEvent,
+    isHealthCheck,
+} from '../../domain/event'
 import {ReqResFn, RequestWithValidData, Routes} from '../express-app'
 import {isTracked, trackDomainMessage, TrackedMessage} from '../../domain/tracked-message'
 import {AmqpProducer} from '../../common/infra/amqp/producer'
@@ -11,9 +18,9 @@ const helloWorld: ReqResFn =
     }
 
 
-const healtCheck: ReqResFn =
+const healthCheck: ReqResFn =
     (_, res) => {
-        res.set('Access-Control-Allow-Origin', 'http://localhost:5173');
+        res.set('Access-Control-Allow-Origin', 'http://localhost:5173')
         res.json({status: 'ok'})
     }
 
@@ -41,7 +48,7 @@ const healtCheckPost:
     (broadCast, producer: AmqpProducer, listener, hcResponses) => (req, res) => {
         const message: unknown = req.body.data
         if (typeof message === 'string') {
-            const healthCheckEvent: HealthCheck = healthCheck(message)
+            const healthCheckEvent: HealthCheck = healthCheckEventOf(message)
             const trackedMessage: TrackedMessage<DomainEvent> = trackDomainMessage(healthCheckEvent)
             producer.send(trackedMessage)
 
@@ -76,7 +83,7 @@ const r: <T extends Routes> (router: T) => ProvidesRoutes<T> =
     <T extends Routes>(router: T) => (broadCast, producer, listener, hcResponses): T => {
         router.get('/hello/world', helloWorld)
         router.post('/health/check', withValidRequest(healtCheckPost(broadCast, producer, listener, hcResponses)))
-        router.get('/health/check', healtCheck)
+        router.get('/health/check', healthCheck)
         return router
     }
 

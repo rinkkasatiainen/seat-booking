@@ -8,16 +8,17 @@ import {AmqpConsumer} from './common/infra/amqp/consumer'
 import {ActsAsServer} from './server/server'
 import {AmqpProducer} from './common/infra/amqp/producer'
 
+// configure
 const path = (process.env.NODE_ENV === 'test' ? 'test.env' : 'variables.env')
 config({path})
 const envVars: ENV = getVars()
+// @ts-ignore To be fixed by typing
+const amqpVars: AMQP_ENV = envVars as unknown as AMQP_ENV
 
 const serverPort = parseInt(envVars.SERVER_PORT || '4000', 10)
 
 const consoleLogger: LogsData = LogsData.console()
 
-// @ts-ignore To be fixed by typing
-const amqpVars: AMQP_ENV = envVars as unknown as AMQP_ENV
 const producer = async () => await AmqpProducer.of(amqpVars, 'health-check:responses')
 const startListener = async () => await AmqpConsumer.of(amqpVars, 'health-check-bookings')
 

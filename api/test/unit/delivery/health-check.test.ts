@@ -3,7 +3,7 @@ import chai from 'chai'
 import {healthCheckRoute} from '../../../src/delivery/routes/health-check'
 import {WsServer} from '../../../src/infra/websocket/ws-server'
 import {ExpressApp, TestRoutes} from '../../../src/delivery/express-app'
-import {DomainEvent, healthCheck} from '../../../src/domain/event'
+import {DomainEvent, healthCheckEventOf} from '../../../src/domain/event'
 import {AmqpProducer} from '../../../src/common/infra/amqp/producer'
 import {AmqpConsumer} from '../../../src/common/infra/amqp/consumer'
 
@@ -30,7 +30,7 @@ describe('health check route', () => {
         } as unknown as Response
         route.simulate('POST', '/health/check')(req, res)
 
-        expect(spiedBroadcast).to.eql([{...healthCheck(message), ws: {status: 'connected'}}])
+        expect(spiedBroadcast).to.eql([{...healthCheckEventOf(message), ws: {status: 'connected'}}])
     })
 
     it('Does broadcast message, vol2', async () => {
@@ -53,6 +53,6 @@ describe('health check route', () => {
         } as unknown as Response
         route.simulate('POST', '/health/check')(req, res)
 
-        expect(spiedBroadcast).to.eql([{...healthCheck(message), ws: {status: 'connected'}}])
+        expect(spiedBroadcast).to.eql([{...healthCheckEventOf(message), ws: {status: 'connected'}}])
     })
 })

@@ -1,12 +1,13 @@
 // eslint-disable-next-line max-classes-per-file
 import amqp, {Channel, Connection, Message} from 'amqplib/callback_api'
 import {AMQP_ENV} from '../../../env-vars'
-import {ListenerCallback, ListenesMessages} from '../../../server'
-import {isDomainEvent} from '../../../domain/event'
+import {ListenesMessages} from '../../../server'
+import {DomainEvent, isDomainEventOrCommand} from '../../../domain/event'
 import {CanTrackMessages, TracksMessages} from '../../../cross-cutting/tracks-requests'
 import {AmqpEvents, generalEvent, TrackedAmqpEvent} from '../amqp-events'
 import {OutputTracker} from '../../../cross-cutting/output-tracker'
 import {isTracked} from '../../../domain/tracked-message'
+import {EventOrCommand, ListenerCallbackT} from '../../../server/server'
 import {createAmqpUrl} from './url'
 
 import {assertQueue, bindQueue, createChannel} from './queue-handling'
@@ -16,7 +17,7 @@ export interface ActsAsConsumer {
 }
 
 
-type ConnectedAmqpConsumer = ListenesMessages
+type ConnectedAmqpConsumer = ListenesMessages<DomainEvent>
 
 type AmqpWrapper = ActsAsConsumer
 
@@ -34,7 +35,7 @@ type ListeningChannel = {
     consume: (name: string, cb: (msg: Message | null) => void) => void;
 } & Pick<Channel, 'ack'>
 
-export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEvents> {
+export class AmqpConsumer implements ListenesMessages<EventOrCommand>, CanTrackMessages<AmqpEvents> {
     private tracksMessages: TracksMessages<TrackedAmqpEvent>
     private static EVENT_NAME = 'AMQP_CONSUMER_EVENT'
 
@@ -45,14 +46,15 @@ export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEven
         this.tracksMessages = new TracksMessages()
     }
 
-    public onMessage(fn: ListenerCallback): void {
+    public onMessage(fn: ListenerCallbackT<EventOrCommand>): void {
         this.channel.consume(this.queueName, (msg: Message | null) => {
             if (msg) {
                 this.channel.ack(msg)
                 const parsed: unknown = JSON.parse(msg.content.toString())
                 this.tracksMessages.eventHappened(AmqpConsumer.EVENT_NAME, {type: 'listen', args: [{msg: parsed}]})
-                if (isTracked(isDomainEvent)(parsed)) {
-                    fn(parsed)
+                if (isTracked(isDomainEventOrCommand)(parsed)) {
+                    const parsed1 = parsed
+                    fn(parsed1)
                 }
             }
         })
@@ -70,9 +72,9 @@ export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEven
         this.connection.close()
     }
 
-    public static async of(envVars: AMQP_ENV, queueName: string): Promise<ListenesMessages> {
+    public static async of(envVars: AMQP_ENV, queueName: string): Promise<ListenesMessages<DomainEvent>> {
         const canStartAmqp: CanStartAmqpConsumer = {
-            start: async (url: string, _amqp: AmqpWrapper): Promise<ListenesMessages> => {
+            start: async (url: string, _amqp: AmqpWrapper): Promise<ListenesMessages<DomainEvent>> => {
                 const closable = await new Promise<{ channel: Channel; conn: Connection }>((res, reject) => {
                     _amqp.connect(url, (errConn, conn) => {
                         if (errConn) {
@@ -101,7 +103,7 @@ export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEven
         qName: string;
         conn: ConnectionLike;
         channel: ListeningChannel;
-    }>): Promise<AmqpConsumer> {
+    }>): Promise<AmqpConsumer>{
         const {qName, conn, channel} = {
             qName: 'testQ-irrelevant', conn: new StubbedConnection(), channel: new StubbedChannel(),
             ...args,

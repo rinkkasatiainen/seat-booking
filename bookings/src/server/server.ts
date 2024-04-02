@@ -1,4 +1,4 @@
-import {DomainEvent, isHealthCheck} from '../domain/event'
+import {DomainCommand, DomainEvent, isHealthCheck} from '../domain/event'
 import {ExpressApp} from '../delivery/express-app'
 import {LogsData} from '../logger'
 import {healthCheckRoute} from '../delivery/routes/health-check'
@@ -17,9 +17,12 @@ export interface SendsMessages {
 }
 
 export type ListenerCallback = (x: TrackedMessage<DomainEvent>) => void;
+export type ListenerCallbackT<T extends EventOrCommand> = (x: TrackedMessage<T>) => void;
 
-export interface ListenesMessages {
-    onMessage: (fn: ListenerCallback) => void;
+export type EventOrCommand = DomainEvent | DomainCommand
+
+export interface ListenesMessages<T extends EventOrCommand> {
+    onMessage: (fn: ListenerCallbackT<T>) => void;
     close: () => void;
 }
 
@@ -27,7 +30,7 @@ export class Server implements ActsAsServer {
 
     private constructor(
         private readonly logger: LogsData,
-        private readonly listener: ListenesMessages,
+        private readonly listener: ListenesMessages<DomainEvent>,
         private readonly producer: SendsMessages,
         private readonly routeApp: ExpressApp
     ) {
@@ -54,7 +57,7 @@ export class Server implements ActsAsServer {
 
     public static of(
         logger: LogsData,
-        listener: ListenesMessages,
+        listener: ListenesMessages<DomainEvent>,
         producer: SendsMessages,
         routeApp: ExpressApp): {
         start: (port: number) => Promise<ActsAsServer>;

@@ -8,54 +8,64 @@ services:
     build:
       context: ./api
       dockerfile: ./Dockerfile
-      target: TEST
+      target: DEV
     environment:
       - API_PG_PWD=pass1
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbit-dev:
-        condition: service_healthy
+      - DOCKER_AMQP_HOST=test_rabbitmq:5672
+      - DOCKER_AMQP_VHOST=dev
+      - DOCKER_AMQP_USERNAME=guest
+      - DOCKER_AMQP_PWD=guest
 
   bookings:
     extends:
       file: docker-compose.yaml
       service: bookings
     hostname: test_bookings
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbit-dev:
-        condition: service_healthy
     build:
       context: ./bookings
       dockerfile: ./Dockerfile
       target: DEV
     environment:
       - BOOKINGS_PG_PWD=pass1
-      - DOCKER_AMQP_HOST=test_rabbitmq:5762
+      - DOCKER_AMQP_HOST=test_rabbitmq:5672
+      - DOCKER_AMQP_VHOST=dev
+      - DOCKER_AMQP_USERNAME=guest
+      - DOCKER_AMQP_PWD=guest
 
   postgres:
     extends:
       file: docker-compose.yaml
       service: postgres
-    hostname: test_postgres
-    environment:
-      PG_USER: user1
-      POSTGRES_USER: user1
-      POSTGRES_PASSWORD: pass1
-      POSTGRES_DB: api-db
     healthcheck:
       test: /usr/bin/pg_isready
       interval: 5s
       timeout: 10s
       retries: 120
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: root
 
   rabbit-dev:
     extends:
       file: docker-compose.yaml
       service: rabbit-dev
     hostname: test_rabbitmq
+    container_name: test_rabbitmq
 
+  test:
+    container_name: e2e-test
+    build:
+      context: ./e2e_test
+      dockerfile: ./Dockerfile
+    environment:
+      - BOOKINGS_PG_PWD=pass1
+    depends_on:
+      - bookings
+      - api
+#    volumes:
+#      - ./bookings/dist/src:/workspace/dist/src
+#      - ./bookings/src:/workspace/src
+    ports:
+      - 4200:4200
 volumes:
   workspace:
