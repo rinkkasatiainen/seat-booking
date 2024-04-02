@@ -1,9 +1,10 @@
 module.exports = {
     root: true,
-    env: {browser: true, es2020: true,  mocha: true},
+    env: {browser: true, es2020: true},
     extends: [
         'eslint:recommended',
         'plugin:react-hooks/recommended',
+        'plugin:eslint-plugin-testing-library',
         'plugin:@typescript-eslint/recommended',
         "plugin:@typescript-eslint/eslint-recommended",
         "plugin:@typescript-eslint/recommended-requiring-type-checking",
@@ -172,7 +173,7 @@ module.exports = {
             "import/order": "error",
             "indent": [
                 "error",
-                2
+                4
             ],
             "linebreak-style": [
                 "error",

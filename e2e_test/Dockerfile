@@ -29,12 +29,3 @@ EXPOSE 4000
 CMD node dist/src/app.js
 
 
-FROM build as TEST
-COPY variables.env.example ./variables.env
-COPY dist ./dist
-#COPY --from=build dist ./dist
-EXPOSE 4000
-CMD yarn nodemon
-CMD yarn test
-
-

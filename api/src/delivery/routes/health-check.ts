@@ -13,6 +13,7 @@ const helloWorld: ReqResFn =
 
 const healtCheck: ReqResFn =
     (_, res) => {
+        res.set('Access-Control-Allow-Origin', 'http://localhost:5173');
         res.json({status: 'ok'})
     }
 
