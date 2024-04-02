@@ -22,7 +22,7 @@ export const asDomainEventOrNull: (data: Buffer | ArrayBuffer | Buffer[]) => Dom
     return jsonData
 }
 
-export const wsSpy: (port: number) => Promise<WsSpy> = async (port) => {
+export const websocket: (port: number) => Promise<WsSpy> = async (port) => {
     const elements: unknown[] = []
     const wsClient: WebSocket = new WebSocket(`ws://localhost:${port}`)
     let connected = false
@@ -44,5 +44,5 @@ export const wsSpy: (port: number) => Promise<WsSpy> = async (port) => {
 
 const noop = () => {/* noop */}
 
-export const wsStream: (spy: WsSpy) => StreamSpy =
+export const streamOf: (spy: WsSpy) => StreamSpy =
     wsSpyPromise => createStreamSpy(wsSpyPromise, [], noop)

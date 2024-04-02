@@ -34,7 +34,7 @@ export class PgPool implements ActsAsPool {
         const {PG_PORT, PG_USERNAME, PG_PASSWORD, PG_HOST} = pgEnv
         const pool = new Pool({
             max: 20,
-            connectionString: `postgres://${PG_USERNAME}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/api-db`,
+            connectionString: `postgres://${PG_USERNAME}:${PG_PASSWORD}@${PG_HOST}:${PG_PORT}/api_dev`,
             idleTimeoutMillis: 30000,
         })
 

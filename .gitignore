@@ -3,3 +3,4 @@ dist
 tsconfig.tsbuildinfo
 yarn-error.log
 variables.env
+.DS_Store

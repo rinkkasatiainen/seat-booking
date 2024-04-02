@@ -10,7 +10,7 @@ import {createPool} from '../../../src/infra/postgres-db'
 import {AMQP_ENV, PG_ENV} from '../../../src/env-vars'
 import {wsServerB} from '../../../src/infra/websocket/ws-server'
 import {DomainEvent, isDomainEvent, isHealthCheck} from '../../../src/domain/event'
-import {wsSpy, wsStream} from '../../utils/ws-stream'
+import {websocket, streamOf} from '../../utils/ws-stream'
 import {knownEvents} from '../../../src/domain/known-events'
 import {ExpressApp} from '../../../src/delivery/express-app'
 import {RabbitSpy, rabbitSpy} from '../../utils/amqp_stream'
@@ -167,11 +167,20 @@ describe('Health Check of the system', () => {
     }).timeout(5000)
 
 
+    // it('does magic', () => {
+    //
+    //     listenTo(websocket).and.expect(knownEvents.HealthCheck).withPayload(Matches.toSubset())
+    //
+    //     withWebsocketConnection().itShouldReceive(knownEvents.HealthCheck).withPayload(Matches.toSubset())
+    //
+    // })
+
+
     it('I think this reads better', async () => {
-        const stream = wsStream(await wsSpy(4001))
-            .ofType(knownEvents.HealthCheck)
+        const stream = streamOf(await websocket(4001))
+            .ofType(knownEvents.HealthCheck).log()
             .withPayload('ws')
-            .matching(Matches.toSubset({ws: {status: 'connected'}}))
+            .matching(Matches.toSubset({ws: {status: 'connected'}, message: 'Hello Websocket Test'}))
 
         await testSession().post('/health/check')
             .set('Accept', 'application/json')
