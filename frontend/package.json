@@ -1,0 +1,30 @@
+{
+  "name": "frontend",
+  "version": "1.0.0",
+  "author": "Aki Salmi",
+  "license": "MIT",
+  "private": false,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint . --max-warnings 0",
+    "test": "web-test-runner test/*.mjs test/**/*.mjs --node-resolve",
+    "test:w": "npm run test --watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@esm-bundle/chai": "^4.3.4-fix.0",
+    "@web/dev-server-import-maps": "^0.2.0",
+    "@web/test-runner": "^0.18.1",
+    "@web/test-runner-cli": "^0.11.0",
+    "@web/test-runner-commands": "^0.9.0",
+    "@web/test-runner-mocha": "^0.9.0",
+    "@web/test-runner-playwright": "^0.11.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-mocha": "^10.4.2",
+    "eslint-plugin-wc": "^2.1.0",
+    "mocha": "^10.4.0",
+    "sinon": "^17.0.1",
+    "sinon-chai": "^3.7.0"
+  }
+}
