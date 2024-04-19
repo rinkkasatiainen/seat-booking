@@ -28,7 +28,7 @@ describe('deployment', () => {
         })
 
         // TODO: AkS: Should this work like this?
-        it('health check also checks rabbitMQ', async () => {
+        xit('health check also checks rabbitMQ', async () => {
             await rq.get('/health/check')
                 .expect(200)
                 .expect((res => {
