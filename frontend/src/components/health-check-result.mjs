@@ -3,26 +3,27 @@ export class GetHealthCheckResult extends HTMLElement {
 
     async connectedCallback() {
         const p = document.createElement('p')
-        // TODO: AkS: For some reason, need to get throught attributes, not from dataset.
-        p.innerHTML = `Status: ${this.getAttribute('content')}`
-        // const content = this.dataset['content'] || 'Unknown'
-        // p.innerHTML = content
 
-        if( this.getAttribute('status-id') ){
-            this.removeOld(this.getAttribute('status-id') )
+        const content = this.dataset['content'] || 'Unknown'
+        const statusId = this.dataset['status_id'];
+
+        p.innerHTML = `Status: ${content}`
+        if( statusId ){
+            this.setAttribute('status_id', statusId)
+            this.markAsToBeRemoved(statusId )
         }
 
         this.appendChild(p)
     }
 
-    removeOld(dataId) {
+    markAsToBeRemoved(dataId) {
         setTimeout(() => {
-            const selectors = `${GetHealthCheckResult.elementName}[status-id="${dataId}"]`;
+            const selectors = `${GetHealthCheckResult.elementName}[status_id="${dataId}"]`;
             const element = document.querySelector(selectors)
             if (element) {
                 element.remove()
             }
-        }, 9000)
+        }, 3000)
     }
 
     static elementName = 'sb-health-check-status'

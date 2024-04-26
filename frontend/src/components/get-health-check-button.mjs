@@ -19,13 +19,16 @@ export class GetHealthCheckButton extends HTMLElement {
     state = ''
 
     onClickResponse(response) {
+        this.#addSlot(response.status)
+    }
+
+    #addSlot(status){
         const dataId = `status-${count++}`;
-        this.state = response.status
 
         const slot = document.createElement(GetHealthCheckResult.elementName)
         slot.slot = 'health-check-status'
-        slot.setAttribute('content', response.status)
-        slot.setAttribute('status-id', dataId)
+        slot.dataset['content'] = status
+        slot.dataset['status_id'] = dataId
 
         this.appendChild(slot)
     }
@@ -46,11 +49,6 @@ export class GetHealthCheckButton extends HTMLElement {
         if (buttonElement) {
             buttonElement.innerHTML = newValue
         }
-    }
-
-    render() {
-        this.innerHTML = ''
-        console.log('rendering now')
     }
 
     static elementName = 'sb-button-component'

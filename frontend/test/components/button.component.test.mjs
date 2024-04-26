@@ -2,6 +2,9 @@ import {GetHealthCheckButton} from "../../src/components/get-health-check-button
 import {expect} from "@esm-bundle/chai";
 import {httpGet} from "@sb-adapters/fetch.js";
 import {GetHealthCheckResult} from "../../src/components/health-check-result.mjs";
+import {tick} from '@testing/tick.mjs'
+import * as sinon from 'sinon'
+
 
 describe('GetHealthCheckButton', () => {
     let element;
@@ -19,9 +22,11 @@ describe('GetHealthCheckButton', () => {
 
     beforeEach(() => {
         element = elementWith([{name: 'data-title', value: 'Button title'}]);
+        httpGet.returns(Promise.resolve({'status': 'NOT OK'}))
     })
 
     afterEach(() => {
+        document.body.removeChild(element)
         httpGet.reset()
     })
 
@@ -36,7 +41,7 @@ describe('GetHealthCheckButton', () => {
     it('renders the component', () => {
         document.body.appendChild(element)
 
-        expect(document.querySelector(GetHealthCheckButton.elementName )).to.not.be.null
+        expect(document.querySelector(GetHealthCheckButton.elementName)).to.not.be.null
     })
 
     it('renders a button with data-attribute', () => {
@@ -60,13 +65,31 @@ describe('GetHealthCheckButton', () => {
         expect(elem).to.be.null
     })
 
+
     it('clicking sends a http GET and returned data is visible', async () => {
+        httpGet.returns(Promise.resolve({'status': 'NOT OK!!!'}))
         document.body.appendChild(element)
 
-        httpGet.returns( Promise.resolve( { 'status': 'NOT OK'}) )
+        // awaiting a click is enough - no need to `tick`
         await element.querySelector('button').click()
 
         const elem = document.querySelector(`${GetHealthCheckResult.elementName}[slot="health-check-status"]`)
-        expect(elem.getAttribute('content')).to.eql('NOT OK')
+        expect(elem.getAttribute('data-content')).to.eql('NOT OK!!!')
+    })
+
+    xit('faking fetch - disabled as this is moved to example tst', async () => {
+        const fetchStub = sinon.stub(window, 'fetch')
+        fetchStub.resolves({
+            json: () => {
+                return Promise.resolve({status: "Faked FETCH"});
+            }
+        })
+        document.body.appendChild(element)
+
+        await tick()
+
+        const elem = document.querySelector(`${GetHealthCheckResult.elementName}[slot="health-check-status"]`)
+
+        expect(elem.getAttribute('data-content')).to.eql("Faked FETCH")
     })
 });

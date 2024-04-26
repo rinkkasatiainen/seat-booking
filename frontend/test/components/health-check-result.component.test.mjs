@@ -13,7 +13,8 @@ describe('GetHealthCheckButton', () => {
     function elementWith(attrs) {
         const element = document.createElement(GetHealthCheckResult.elementName)
         for (const attr of attrs) {
-            element.setAttribute(attr.name, attr.value)
+            element.dataset[attr.name] = attr.value
+            // element.setAttribute(attr.name, attr.value)
         }
         return element;
     }
@@ -21,7 +22,7 @@ describe('GetHealthCheckButton', () => {
     it('does not have data visible', async () => {
         const element = elementWith([
             {name: 'content', value: 'STATUS-VALUE'},
-            {name: 'status-id', value: '1'}
+            {name: 'status_id', value: '1'}
         ]);
 
         document.body.appendChild(element)
