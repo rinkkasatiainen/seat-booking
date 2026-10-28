@@ -1,6 +1,8 @@
 node_modules
 dist
 tsconfig.tsbuildinfo
+tsconfig.test.tsbuildinfo
 yarn-error.log
 variables.env
 .DS_Store
+postgresdata/

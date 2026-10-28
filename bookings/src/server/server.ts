@@ -42,7 +42,9 @@ export class Server implements ActsAsServer {
         })
         this.listener.onMessage((event) => {
             const domainEvent = event.data
-            if (isHealthCheck(domainEvent)) {
+            // A reply already carries bookings status. Answering it again publishes
+            // another health check, and a '#' binding delivers that reply straight back.
+            if (isHealthCheck(domainEvent) && !('bookings' in domainEvent)) {
                 const newEvent = {...domainEvent, bookings: {status: 'ok', amqp: {status: 'connected'}}}
                 this.producer.send({uuid: event.uuid, data: newEvent})
             }

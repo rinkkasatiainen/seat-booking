@@ -1,40 +1,23 @@
-FROM node:20-alpine as build
+FROM node:22-alpine AS build
 LABEL authors="akisalmi"
 
-RUN rm -rf /workspace
-RUN mkdir -p /workspace
 WORKDIR /workspace
 COPY package.json tsconfig.json nodemon.json yarn.lock ./
 
-# build the service with TSC
-RUN yarn install
+RUN yarn install --frozen-lockfile
 COPY src ./src
+RUN yarn build
 
-FROM build as DEV
+FROM build AS DEV
 COPY variables.env.example ./variables.env
-COPY dist ./dist
-#COPY --from=build dist ./dist
 EXPOSE 4000
-CMD yarn nodemon
+# tsc --watch writes into the mounted dist folder, then nodemon restarts.
+CMD ["yarn", "start:dev"]
 
 # Install only production dependencies & remove dev dependencies
-FROM build as PROD
-
-RUN yarn build
-COPY  dist ./dist
+FROM build AS PROD
 ENV NODE_ENV=production
-RUN yarn install --production
+RUN yarn install --frozen-lockfile --production
 COPY variables.env.example ./variables.env
 EXPOSE 4000
-CMD node dist/src/app.js
-
-
-FROM build as TEST
-COPY variables.env.example ./variables.env
-COPY dist ./dist
-#COPY --from=build dist ./dist
-EXPOSE 4000
-CMD yarn nodemon
-CMD yarn test
-
-
+CMD ["node", "dist/src/app.js"]

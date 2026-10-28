@@ -4,7 +4,6 @@ import {MessageProperties} from 'amqplib'
 import {amqpMessageOf} from '../../utils/amqp_stream'
 import {AmqpProducer, StubbedBroadcast} from '../../../src/common/infra/amqp/producer'
 import {trackDomainMessage} from '../../../src/domain/tracked-message'
-import {AMQP_ENV, getVars} from '../../../src/env-vars'
 import {ActsAsServer, Server} from '../../../src/server/server'
 import {ExpressApp} from '../../../src/delivery/express-app'
 import {LogsData} from '../../../src/logger'
@@ -25,16 +24,11 @@ type X = Record<string, unknown>
 chai.use((ch) => {
     const Assertion = ch.Assertion
 
-    Assertion.addMethod('matching', function(expected: Subset, idKey) {
+    Assertion.addMethod('matching', function(expected: Subset) {
 
         const obj = this._obj // eslint-disable-line @typescript-eslint/no-unsafe-assignment
 
-
-        // throw new Error(JSON.stringify(obj, null, 4))
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        // new Assertion(obj[idKey]).to.be.a('string')
-
-        Object.keys(expected).forEach((key) => {
+        Object.keys(expected).forEach(() => {
             new Assertion(isSubset(obj, expected), 'expecting subsets to match').to.eq(true)
         })
     })
@@ -109,9 +103,8 @@ describe('component of Bookings', () => {
             const data = tracksMessages.data().map((it: TrackedAmqpEvent) => {
                 // throw new Error(`it: ${it.args}`)
                 // throw new Error(`it: ${JSON.stringify(it.args)}`)
-                const parse: Buffer[] = it.args as Buffer[]
-                // throw new Error(`it: ${JSON.stringify(parse)}`)
-                return JSON.parse(parse).data as HealthCheck
+                const payload = it.args.map(part => (Buffer.isBuffer(part) ? part.toString('utf-8') : String(part))).join('')
+                return JSON.parse(payload).data as HealthCheck
             })
             // throw new Error(`it: ${JSON.stringify(data)}`)
             // @ts-ignore

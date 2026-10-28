@@ -33,14 +33,19 @@ const app = ExpressApp.app()
 const whitelist = ['http://localhost', 'http://localhost:8080'] // white list consumers
 const corsOptions = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    origin(origin: string, callback: (x: any, y: boolean) => any) {
+    origin(requestOrigin: string | undefined, callback: (x: any, y: boolean) => any) {
+        // curl, supertest, and same-origin calls omit Origin. cors still invokes this hook.
+        if (!requestOrigin) {
+            callback(null, true)
+            return
+        }
         for (const o of whitelist) {
-            if (origin.match(o)) {
+            if (requestOrigin.match(o)) {
                 callback(null, true)
                 return
             }
         }
-        if (whitelist.indexOf(origin) !== -1) {
+        if (whitelist.indexOf(requestOrigin) !== -1) {
             callback(null, true)
         } else {
             callback(null, false)

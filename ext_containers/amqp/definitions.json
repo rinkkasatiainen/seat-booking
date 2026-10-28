@@ -1,26 +1,4 @@
 {
-  "rabbit_version": "3.13.1",
-  "rabbitmq_version": "3.13.1",
-  "product_name": "RabbitMQ",
-  "product_version": "3.8.9",
-  "users": [
-    {
-      "name": "rabbitmq",
-      "password_hash": "AODy4/o2uZLEVdKm/ebXnhrIbMi2cIMoRTuyrloDRLvCrP/m",
-      "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": [],
-      "limits": {}
-    },
-    {
-      "name": "guest",
-      "password_hash": "X1/zPzTLFnic7mJBdmRz2vUv2FbfDRtAARJpF7eXvklLgKTt",
-      "hashing_algorithm": "rabbit_password_hashing_sha256",
-      "tags": [
-        "administrator"
-      ],
-      "limits": {}
-    }
-  ],
   "vhosts": [
     {
       "name": "test-queue"
@@ -36,15 +14,9 @@
       "configure": ".*",
       "write": ".*",
       "read": ".*"
-    },    {
-      "user": "rabbitmq",
-      "vhost": "dev",
-      "configure": ".*",
-      "write": ".*",
-      "read": ".*"
     },
     {
-      "user": "rabbitmq",
+      "user": "guest",
       "vhost": "test-queue",
       "configure": ".*",
       "write": ".*",
@@ -57,16 +29,7 @@
   "parameters": [
 
   ],
-  "global_parameters": [
-    {
-      "name": "cluster_name",
-      "value": "rabbit@a8d5c6e08439"
-    },
-    {
-      "name": "internal_cluster_id",
-      "value": "rabbitmq-cluster-id-gXeBLbsUC2W2tU0Bx_QY_w"
-    }
-  ],
+  "global_parameters": [],
   "policies": [
 
   ],

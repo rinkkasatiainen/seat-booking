@@ -9,7 +9,7 @@
   "license": "MIT",
   "dependencies": {
     "@types/cors": "^2.8.17",
-    "amqplib": "^0.10.3",
+    "amqplib": "^2.2.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -33,7 +33,6 @@
     "test:deployment": "NODE_ENV=test ts-mocha -p ./tsconfig.test.json test/deployment/**/*.test.ts"
   },
   "devDependencies": {
-    "@types/amqplib": "^0.10.4",
     "@types/chai": "^4.3.5",
     "@types/chai-subset": "^1.3.3",
     "@types/express": "^4.17.17",

@@ -81,7 +81,8 @@ export class AmqpConsumer implements ListenesMessages, CanTrackMessages<AmqpEven
 
                         createChannel(conn).then((channel: Channel) => {
                             assertQueue(channel, queueName, {autoDelete: false}).then(amqpQueue => {
-                                bindQueue(channel, amqpQueue, 'health-check', 'api').then(() => {
+                                const routingKey = queueName === 'health-check-responses' ? 'responses' : 'api'
+                                bindQueue(channel, amqpQueue, 'health-check', routingKey).then(() => {
                                     res({channel, conn})
                                 }).catch((err: Error) => reject(err))
                             }).catch((err: Error) => reject(err))

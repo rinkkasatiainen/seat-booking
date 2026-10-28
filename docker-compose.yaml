@@ -6,8 +6,7 @@ services:
       context: ./api
       dockerfile: ./Dockerfile
     environment:
-      - API_PG_PWD=password!
-      - DB_URL=postgresql+asyncpg://apiUser:password1@postgres/api-dev
+      - API_PG_PWD=pass1
     depends_on:
       postgres:
         condition: service_healthy
@@ -16,7 +15,6 @@ services:
     volumes:
       - ./api/dist/src:/workspace/dist/src
       - ./api/src:/workspace/src
-      - workspace:/workspace
     ports:
       - 4000:4000
 
@@ -85,17 +83,18 @@ services:
 #      - messaging
     hostname: rabbit-dev
     environment:
-      - RABBITMQ_DEFAULT_VHOST=api
+      - RABBITMQ_DEFAULT_VHOST=dev
       - RABBITMQ_ERLANG_COOKIE=i-m-very-secret
-      - RABBITMQ_DEFAULT_USER guest
-      - RABBITMQ_DEFAULT_PASS guest
-      - RABBITMQ_USER user
-      - RABBITMQ_PASS pass
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
     ports:
       - 8881:15672 # Admin UI of rabbitmq-1
       - 5672:5672 # rabbitmq-1 for local development
     healthcheck:
-      test: rabbitmq-diagnostics -q check_port_connectivity
-
-volumes:
-  workspace:
+      # ping only checks that the OS process answers. The broker can still be
+      # stuck importing definitions, which is what the apps actually need.
+      test: ["CMD-SHELL", "rabbitmqctl list_queues -p dev name | grep -q health-check-bookings"]
+      interval: 5s
+      timeout: 10s
+      retries: 30
+      start_period: 20s

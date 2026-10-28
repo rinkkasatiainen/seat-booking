@@ -1,6 +1,5 @@
 // eslint-disable-next-line max-classes-per-file
-import amqp, {Channel, Connection, credentials} from 'amqplib/callback_api'
-import {Options} from 'amqplib/properties'
+import amqp, {Channel, Connection, credentials, Options} from 'amqplib/callback_api'
 import {SendsMessages} from '../../../server'
 import {OutputTracker} from '../../../cross-cutting/output-tracker'
 import {broadcastEvent, errorEvent, generalEvent, TrackedAmqpEvent} from '../amqp-events'
@@ -13,7 +12,7 @@ import {createAmqpUrl, ExchangeName, parseExchangeName, XcTopic} from './url'
 import {createChannel} from './queue-handling'
 
 export interface ActsAsProducer {
-    connect: (url: string, opts: unknown, callback: (errorConnect: Error, connection: Connection) => void) => void;
+    connect: typeof amqp.connect;
 }
 
 type AmqpWrapper = ActsAsProducer

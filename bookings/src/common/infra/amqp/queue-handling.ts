@@ -1,5 +1,4 @@
-import {Channel, Connection, Replies} from 'amqplib/callback_api'
-import {Options} from 'amqplib/properties'
+import {Channel, Connection, Options, Replies} from 'amqplib/callback_api'
 
 export function createChannel(connection: Connection): Promise<Channel> {
     return new Promise((res, rej) => {
@@ -24,9 +23,9 @@ export function assertQueue(ch: Channel, queue: string, opts: Options.AssertQueu
     })
 }
 
-export function bindQueue(ch: Channel, queue: Replies.AssertQueue, topic: string): Promise<void> {
+export function bindQueue(ch: Channel, queue: Replies.AssertQueue, topic: string, pattern: string): Promise<void> {
     return new Promise((res, rej) => {
-        ch.bindQueue(queue.queue, topic, '#', undefined, (errBind) => {
+        ch.bindQueue(queue.queue, topic, pattern, undefined, (errBind) => {
             if (errBind) {
                 rej(errBind)
             }

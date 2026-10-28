@@ -1,5 +1,4 @@
-import {Channel, Connection, Replies} from 'amqplib/callback_api'
-import {Options} from 'amqplib/properties'
+import {Channel, Connection, Options, Replies} from 'amqplib/callback_api'
 
 export function createChannel(connection: Connection): Promise<Channel> {
     return new Promise((res, rej) => {
